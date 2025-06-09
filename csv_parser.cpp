@@ -1,0 +1,130 @@
+#include "csv_parser.hpp"
+
+#include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/trim.hpp>
+
+#include <csv2/reader.hpp>
+
+#include <iostream>
+
+namespace spatparse::csv
+{
+std::optional<file> parse(std::string_view input)
+try
+{
+  file res;
+
+  csv2::Reader<> r;
+
+  r.parse_view(input);
+
+  int columns = r.cols();
+  std::optional<int> col_name;
+  std::optional<int> col_gain;
+  std::optional<int> col_x;
+  std::optional<int> col_y;
+  std::optional<int> col_z;
+
+  std::optional<int> col_a;
+  std::optional<int> col_e;
+  std::optional<int> col_d;
+
+  int col_index = 0;
+  for(auto k : r.header())
+  {
+    std::string name{k.read_view()};
+    boost::trim(name);
+    boost::to_lower(name);
+
+    if(name.contains("name"))
+      col_name = col_index;
+    else if(name.contains("gain"))
+      col_gain = col_index;
+    else if(name.contains("x"))
+      col_x = col_index;
+    else if(name.contains("y"))
+      col_y = col_index;
+    else if(name.contains("z"))
+      col_z = col_index;
+    else if(name.contains("a"))
+      col_a = col_index;
+    else if(name.contains("e"))
+      col_e = col_index;
+    else if(name.contains("d"))
+      col_d = col_index;
+    col_index++;
+  }
+
+  const bool has_xyz = (col_x && col_y && col_z);
+  const bool has_aed = (col_a && col_e && col_d);
+
+  if(!(has_xyz || has_aed))
+  {
+    std::cerr << "Cannot find meaningful data \n";
+    return std::nullopt;
+  }
+
+  std::cerr << columns << "::" << r.rows() << "   " << has_xyz << ":" << has_aed << "\n";
+  std::string v;
+  for(const csv2::Reader<>::Row& row : r)
+  {
+    if(row.length() == 0)
+      continue;
+    loudspeaker sp;
+
+    int column = 0;
+    xyz_position xyz;
+    aed_position aed;
+    for(const auto& cell : row)
+    {
+      v.clear();
+      cell.read_value(v);
+
+      if(column == col_name)
+      {
+        sp.name = std::string(v);
+      }
+      else
+      {
+        double num{};
+        auto res = std::from_chars(v.data(), v.data() + v.size(), num);
+        if(res.ec != std::errc{})
+        {
+          std::cerr << "Parse number error!\n ";
+          return std::nullopt;
+        }
+
+        if(column == col_x)
+          xyz.x = num;
+        else if(column == col_y)
+          xyz.y = num;
+        else if(column == col_z)
+          xyz.z = num;
+        else if(column == col_a)
+          aed.a = num;
+        else if(column == col_e)
+          aed.e = num;
+        else if(column == col_d)
+          aed.d = num;
+        else if(column == col_gain)
+          sp.gain = num;
+      }
+
+      column++;
+    }
+    if(has_xyz)
+      sp.position = xyz;
+    else if(has_aed)
+      sp.position = aed;
+
+    res.speakers.push_back(sp);
+  }
+
+  return res;
+}
+catch(...)
+{
+  std::cerr << "Parse error!\n ";
+  return std::nullopt;
+}
+}

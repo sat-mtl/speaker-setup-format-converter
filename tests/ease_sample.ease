@@ -1,18 +1,3 @@
-#include "parser.hpp"
-
-#include <boost/regex.hpp>
-
-#include <clocale>
-#include <iostream>
-#include <string>
-#include <vector>
-
-//////////////////////////////
-// Test
-//////////////////////////////
-int main()
-{
-  std::string input = R"(
 ; EASE Focus 3 - Soci?t? des arts technologiques - David Ledoux
 ;
 ; Exported on 2025-04-08 15:01
@@ -148,44 +133,3 @@ int main()
 "Watts",0
 "Phase",0
 ;
-)";
-  // Make sure numbers are parsed with dots
-  setlocale(LC_ALL, "C");
-
-  // Remove the comments
-  const boost::regex rx(";([[:print:]]| )*\n");
-  input = boost::regex_replace(input, rx, "");
-
-  // Parse
-  struct file file;
-
-  auto begin = input.begin();
-  auto end = input.end();
-  bool success = boost::spirit::x3::phrase_parse(
-      begin, end, file_header_parser >> *loudspeaker_parser, x3::ascii::space, file);
-
-  // Print
-  std::cout << file.header.file_type << "\n"
-            << file.header.format << "\n"
-            << file.header.length_unit << "\n";
-
-  for(int i = 0; i < file.loudspeakers.size(); i++)
-  {
-    auto& l = file.loudspeakers[i];
-    std::cout << i << ":\n"
-              << l.label << "\n"
-              << l.x << " " << l.y << " " << l.z << "\n"
-              << l.ver << " " << l.hor << " " << l.rot << "\n"
-              << l.speaker << "\n"
-              << l.delay << "\n"
-              << l.align << "\n";
-    std::cout << "[";
-    for(auto db : l.db_1m)
-      std::cout << db << ",";
-
-    std::cout << "]\n";
-    std::cout << l.phase << "\n" << l.watts << "\n\n";
-  }
-
-  return 0;
-}

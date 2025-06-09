@@ -9,13 +9,14 @@
 //////////////////////////////
 // Our data model
 //////////////////////////////
+namespace spatparse::ease
+{
 struct file_header
 {
   std::string file_type;
   double format{};
   std::string length_unit;
 };
-BOOST_FUSION_ADAPT_STRUCT(file_header, file_type, format, length_unit)
 
 struct loudspeaker
 {
@@ -29,17 +30,20 @@ struct loudspeaker
   int phase;
   int watts;
 };
-BOOST_FUSION_ADAPT_STRUCT(
-    loudspeaker, label, x, y, z, ver, hor, rot, speaker, delay, align, db_1m, phase,
-    watts)
 
 struct file
 {
   file_header header;
   std::vector<loudspeaker> loudspeakers;
 };
-BOOST_FUSION_ADAPT_STRUCT(file, header, loudspeakers)
 
 using file_header_t = file_header;
 using loudspeaker_t = loudspeaker;
 using file_t = file;
+}
+
+BOOST_FUSION_ADAPT_STRUCT(spatparse::ease::file_header, file_type, format, length_unit)
+BOOST_FUSION_ADAPT_STRUCT(
+    spatparse::ease::loudspeaker, label, x, y, z, ver, hor, rot, speaker, delay, align,
+    db_1m, phase, watts)
+BOOST_FUSION_ADAPT_STRUCT(spatparse::ease::file, header, loudspeakers)
