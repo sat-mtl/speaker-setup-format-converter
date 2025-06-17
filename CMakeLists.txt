@@ -110,5 +110,31 @@ target_link_libraries(ease-test PRIVATE spat-format-converter)
 target_link_libraries(aiira-test PRIVATE spat-format-converter)
 target_link_libraries(spat-test PRIVATE spat-format-converter)
 target_link_libraries(csv-test PRIVATE spat-format-converter)
+target_link_libraries(speakerview-test PRIVATE spat-format-converter)
 target_link_libraries(converter-test PRIVATE spat-format-converter)
 target_link_libraries(spatparsecli PRIVATE spat-format-converter args)
+
+# Qt GUI Application
+find_package(Qt6 COMPONENTS Core Widgets QUIET)
+if(Qt6_FOUND)
+  set(CMAKE_AUTOMOC ON)
+  
+  add_executable(spatconverter-gui
+    gui_main.cpp
+    mainwindow.cpp
+    mainwindow.hpp
+  )
+  
+  target_link_libraries(spatconverter-gui PRIVATE
+    spat-format-converter
+    Qt6::Core
+    Qt6::Widgets
+  )
+  
+  set_target_properties(spatconverter-gui PROPERTIES
+    WIN32_EXECUTABLE TRUE
+    MACOSX_BUNDLE TRUE
+  )
+else()
+  message(STATUS "Qt6 not found, GUI will not be built")
+endif()
