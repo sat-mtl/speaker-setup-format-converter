@@ -1,0 +1,96 @@
+.macos_saas_runners:
+  tags:
+    - saas-macos-medium-m1
+  image: macos-13-xcode-14
+  before_script:
+    - echo "started by ${GITLAB_USER_NAME}"
+
+.shared_windows_runners:
+  tags:
+    - saas-windows-medium-amd64
+  before_script:
+    - Set-Variable -Name "time" -Value (date -Format "%H:%m")
+    - echo ${time}
+    - echo "started by ${GITLAB_USER_NAME}"
+
+image: gcc
+
+stages:
+  - build
+  - test
+  - deploy
+
+build:linux:
+  stage: build
+  tags:
+    - gitlab-org
+  before_script:
+    - apt update && apt -y install ninja-build cmake
+  script:
+    - mkdir -p build
+    - cmake -S $PWD -B build -GNinja
+    - cmake --build build
+  artifacts:
+    expire_in: 2 hrs
+    paths:
+      - build/
+
+build:windows:
+  stage: build
+  extends:
+    - .shared_windows_runners
+  before_script:
+    - choco install -y cmake
+  script:
+    - cmake -S . -B build
+    - cmake --build build
+  artifacts:
+    expire_in: 2 hrs
+    paths:
+      - build/
+
+build:mac:
+  stage: build
+  extends:
+    - .macos_saas_runners
+  
+  before_script:
+    - brew update
+    - brew install cmake
+  script:
+    - mkdir -p build
+    - cmake -S $PWD -B build
+    - cmake --build build
+  artifacts:
+    expire_in: 2 hrs
+    paths:
+      - build/
+
+# Run test
+test:linux:
+  stage: test
+  tags:
+    - gitlab-org
+  script:
+    - ctest -V
+  dependencies:
+    - build:linux
+
+test:windows:
+  stage: test
+  extends:
+    - .shared_windows_runners
+  script:
+    - ctest -V
+  dependencies:
+    - build:windows
+
+test:mac:
+  stage: test
+  extends:
+    - .macos_saas_runners
+  script:
+    - ctest -V
+  dependencies:
+    - build:mac
+
