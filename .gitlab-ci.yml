@@ -13,7 +13,7 @@
     - echo ${time}
     - echo "started by ${GITLAB_USER_NAME}"
 
-image: gcc
+image: ubuntu:24.04
 
 stages:
   - build
