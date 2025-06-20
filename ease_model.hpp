@@ -26,7 +26,8 @@ struct loudspeaker
   std::string speaker;
   int delay;
   int align;
-  std::vector<int> db_1m;
+  std::vector<int>
+      db_1m; // always 21 but boost.spirit does not support parsing into std::array
   int phase;
   int watts;
 };

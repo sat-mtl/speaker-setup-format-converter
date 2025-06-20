@@ -40,6 +40,9 @@ void MainWindow::setupUi()
     
     // Format selection area
     auto* formatLayout = new QHBoxLayout();
+    m_loadButton = new QPushButton("Load File...");
+    connect(m_loadButton, &QPushButton::clicked, this, &MainWindow::onLoadFile);
+    formatLayout->addWidget(m_loadButton);
     formatLayout->addWidget(new QLabel("Input Format:"));
     
     m_inputFormatCombo = new QComboBox();
@@ -47,15 +50,7 @@ void MainWindow::setupUi()
     connect(m_inputFormatCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::onInputFormatChanged);
     formatLayout->addWidget(m_inputFormatCombo);
-    
-    formatLayout->addStretch();
-    
-    formatLayout->addWidget(new QLabel("Output Format:"));
-    m_outputFormatCombo = new QComboBox();
-    m_outputFormatCombo->addItems({"SpeakerView"});
-    m_outputFormatCombo->setCurrentIndex(0);
-    formatLayout->addWidget(m_outputFormatCombo);
-    
+
     mainLayout->addLayout(formatLayout);
     
     // Input area
@@ -68,10 +63,12 @@ void MainWindow::setupUi()
     
     // Buttons
     auto* buttonLayout = new QHBoxLayout();
-    m_loadButton = new QPushButton("Load File...");
-    connect(m_loadButton, &QPushButton::clicked, this, &MainWindow::onLoadFile);
-    buttonLayout->addWidget(m_loadButton);
-    
+
+    buttonLayout->addWidget(new QLabel("Output Format:"));
+    m_outputFormatCombo = new QComboBox();
+    m_outputFormatCombo->addItems({"EASE", "AIIRA", "SPAT", "CSV", "SpeakerView"});
+    m_outputFormatCombo->setCurrentIndex(0);
+    buttonLayout->addWidget(m_outputFormatCombo);
     m_convertButton = new QPushButton("Convert");
     m_convertButton->setEnabled(false);
     connect(m_convertButton, &QPushButton::clicked, this, &MainWindow::onConvert);
@@ -112,18 +109,24 @@ void MainWindow::setupUi()
 
 void MainWindow::onLoadFile()
 {
-    QString filter = "All Supported (*.ease *.json *.rtf *.csv *.xml);;EASE Files (*.ease);;AIIRA Files (*.json);;SPAT Files (*.rtf);;CSV Files (*.csv);;SpeakerView Files (*.xml);;All Files (*)";
-    QString filePath = QFileDialog::getOpenFileName(this, "Load Speaker Configuration", QString(), filter);
-    
-    if (filePath.isEmpty()) {
-        return;
-    }
-    
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QMessageBox::critical(this, "Error", "Could not open file: " + file.errorString());
-        return;
-    }
+  QString filter
+      = "All Supported (*.xld *.ease *.json *.rtf *.csv *.xml);;EASE Files (*.xld "
+        "*.ease);;AIIRA Files (*.json);;SPAT Files (*.rtf);;CSV Files "
+        "(*.csv);;SpeakerView Files (*.xml);;All Files (*)";
+  QString filePath = QFileDialog::getOpenFileName(
+      this, "Load Speaker Configuration", QString(), filter);
+
+  if(filePath.isEmpty())
+  {
+    return;
+  }
+
+  QFile file(filePath);
+  if(!file.open(QIODevice::ReadOnly | QIODevice::Text))
+  {
+    QMessageBox::critical(this, "Error", "Could not open file: " + file.errorString());
+    return;
+  }
     
     QTextStream stream(&file);
     QString content = stream.readAll();
@@ -177,7 +180,8 @@ void MainWindow::onConvert()
     }
     
     std::string inputFormat = m_inputFormatCombo->currentText().toStdString();
-    
+    std::string outputFormat = m_outputFormatCombo->currentText().toStdString();
+
     // If auto-detect, try to detect from content
     if (inputFormat == "Auto-detect") {
         if (!m_currentFilePath.isEmpty()) {
@@ -188,56 +192,110 @@ void MainWindow::onConvert()
             return;
         }
     }
-    
-    try {
-        spatparse::speakerview::file result;
-        bool success = false;
-        
-        if (inputFormat == "EASE") {
-            auto parsed = spatparse::ease::parse(m_inputContent);
-            if (parsed) {
-                result = spatparse::to_speakerview(*parsed);
-                success = true;
-            }
-        } else if (inputFormat == "AIIRA") {
-            auto parsed = spatparse::aiira::parse(m_inputContent);
-            if (parsed) {
-                result = spatparse::to_speakerview(*parsed);
-                success = true;
-            }
-        } else if (inputFormat == "SPAT") {
-            auto parsed = spatparse::spat::parse(m_inputContent);
-            if (parsed) {
-                result = spatparse::to_speakerview(*parsed);
-                success = true;
-            }
-        } else if (inputFormat == "CSV") {
-            auto parsed = spatparse::csv::parse(m_inputContent);
-            if (parsed) {
-                result = spatparse::to_speakerview(*parsed);
-                success = true;
-            }
-        } else if (inputFormat == "SpeakerView") {
-            // For now, just pass through
-            m_outputTextEdit->setPlainText(QString::fromStdString(m_inputContent));
-            m_saveButton->setEnabled(true);
-            m_statusLabel->setText("Conversion complete (pass-through)");
-            return;
+
+    try
+    {
+      using namespace spatparse;
+      // Step 1: Parse the input string into the unified format.
+      std::optional<spatparse::unified::loudspeaker_configuration> unified_config;
+
+      if(inputFormat == "EASE")
+      {
+        if(auto parsed = spatparse::ease::parse(m_inputContent))
+        {
+          unified_config.emplace();
+          convert(*parsed, *unified_config);
         }
-        
-        if (success) {
-            std::string output = spatparse::speakerview::to_string(result);
-            m_outputTextEdit->setPlainText(QString::fromStdString(output));
-            m_saveButton->setEnabled(true);
-            m_statusLabel->setText("Conversion complete");
-        } else {
-            QMessageBox::critical(this, "Error", "Failed to parse input file");
-            m_statusLabel->setText("Conversion failed");
+      }
+      else if(inputFormat == "AIIRA")
+      {
+        if(auto parsed = spatparse::aiira::parse(m_inputContent))
+        {
+          unified_config.emplace();
+          convert(*parsed, *unified_config);
         }
-        
-    } catch (const std::exception& e) {
-        QMessageBox::critical(this, "Error", QString("Conversion error: %1").arg(e.what()));
+      }
+      else if(inputFormat == "SPAT")
+      {
+        if(auto parsed = spatparse::spat::parse(m_inputContent))
+        {
+          unified_config.emplace();
+          convert(*parsed, *unified_config);
+        }
+      }
+      else if(inputFormat == "CSV")
+      {
+        if(auto parsed = spatparse::csv::parse(m_inputContent))
+        {
+          unified_config.emplace();
+          convert(*parsed, *unified_config);
+        }
+      }
+      else if(inputFormat == "SpeakerView")
+      {
+        if(auto parsed = spatparse::speakerview::parse(m_inputContent))
+        {
+          unified_config.emplace();
+          convert(*parsed, *unified_config);
+        }
+      }
+
+      // Step 2: Check for parsing success and serialize from the unified format.
+      if(unified_config)
+      {
+        std::string output_string;
+
+        if(outputFormat == "EASE")
+        {
+          spatparse::ease::file f;
+          convert(*unified_config, f);
+          output_string = ease::to_string(f);
+        }
+        else if(outputFormat == "AIIRA")
+        {
+          spatparse::aiira::file f;
+          convert(*unified_config, f);
+          output_string = to_string(f);
+        }
+        else if(outputFormat == "SPAT")
+        {
+          spatparse::spat::file f;
+          convert(*unified_config, f);
+          output_string = to_string(f);
+        }
+        else if(outputFormat == "CSV")
+        {
+          spatparse::csv::file f;
+          convert(*unified_config, f);
+          output_string = to_string(f);
+        }
+        else if(outputFormat == "SpeakerView")
+        {
+          spatparse::speakerview::file f;
+          convert(*unified_config, f);
+          output_string = to_string(f); // This uses your existing target format
+        }
+
+        // Update the UI with the result
+        m_outputTextEdit->setPlainText(QString::fromStdString(output_string));
+        m_saveButton->setEnabled(true);
+        m_statusLabel->setText(
+            QString("Conversion from %1 to %2 complete").arg(inputFormat, outputFormat));
+      }
+      else
+      {
+        // Parsing failed
+        QMessageBox::critical(
+            this, "Error",
+            QString("Failed to parse input file as %1 format.").arg(inputFormat));
         m_statusLabel->setText("Conversion failed");
+      }
+    }
+    catch(const std::exception& e)
+    {
+      QMessageBox::critical(
+          this, "Error", QString("An unexpected error occurred: %1").arg(e.what()));
+      m_statusLabel->setText("Conversion failed");
     }
 }
 

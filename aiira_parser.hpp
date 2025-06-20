@@ -7,4 +7,5 @@
 namespace spatparse::aiira
 {
 std::optional<file> parse(std::string_view bytes);
+std::string to_string(const file& f);
 }

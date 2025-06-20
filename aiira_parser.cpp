@@ -96,4 +96,47 @@ std::optional<file> parse(std::string_view json_string)
   }
 }
 
+std::string to_string(const spatparse::aiira::file& f)
+{
+  std::string json_string;
+  json_string.reserve(32768);
+
+  json_string += std::format(
+      "{{\n"
+      "  \"Name\": \"{}\",\n"
+      "  \"Description\": \"{}\",\n"
+      "  \"LoudspeakerLayout\": {{\n"
+      "    \"Name\": \"{}\",\n"
+      "    \"Loudspeakers\": [\n",
+      f.header.name, f.header.description, f.layout.name);
+
+  for(std::size_t i = 0; i < f.layout.loudspeakers.size(); ++i)
+  {
+    const auto& spk = f.layout.loudspeakers[i];
+    json_string += std::format(
+        "      {{\n"
+        "        \"Azimuth\": {:.6f},\n"
+        "        \"Elevation\": {:.6f},\n"
+        "        \"Radius\": {:.6f},\n"
+        "        \"IsImaginary\": {},\n"
+        "        \"Channel\": {},\n"
+        "        \"Gain\": {:.6f}\n"
+        "      }}",
+        spk.azimuth, spk.elevation, spk.radius, spk.imaginary ? "true" : "false",
+        spk.channel, spk.gain);
+
+    if(i < f.layout.loudspeakers.size() - 1)
+      json_string += ",\n";
+    else
+      json_string += "\n";
+  }
+
+  json_string +=
+      "    ]\n"
+      "  }\n"
+      "}\n";
+
+  return json_string;
+}
+
 } // namespace spatparse::aiira

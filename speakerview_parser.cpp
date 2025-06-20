@@ -1,9 +1,65 @@
 #include "speakerview_parser.hpp"
 
-#include <format>
+#include "utils.hpp"
 
+#include <pugixml.hpp>
+
+#include <format>
+#include <iostream>
 namespace spatparse::speakerview
 {
+std::optional<spatparse::speakerview::file> parse(std::string_view input)
+{
+  pugi::xml_document doc;
+
+  pugi::xml_parse_result result = doc.load_buffer(input.data(), input.size());
+
+  if(!result)
+  {
+    std::cerr << "XML parsing failed: " << result.description() << std::endl;
+    return std::nullopt;
+  }
+
+  pugi::xml_node root_node = doc.child("SPEAKER_SETUP");
+  if(!root_node)
+  {
+    std::cerr << "Error: Root node 'SPEAKER_SETUP' not found." << std::endl;
+    return std::nullopt;
+  }
+
+  spatparse::speakerview::file output_file;
+
+  for(pugi::xml_node speaker_node : root_node.children())
+  {
+    const std::string_view state = speaker_node.attribute("STATE").as_string("normal");
+    if(state != "normal")
+    {
+      continue;
+    }
+
+    pugi::xml_node pos_node = speaker_node.child("POSITION");
+    if(!pos_node)
+    {
+      std::cerr << "Warning: Speaker '" << speaker_node.name()
+                << "' is missing a 'POSITION' node. Skipping." << std::endl;
+      continue;
+    }
+
+    spatparse::speakerview::loudspeaker current_speaker;
+    current_speaker.name = speaker_node.name();
+
+    current_speaker.x = pos_node.attribute("X").as_double();
+    current_speaker.y = pos_node.attribute("Y").as_double();
+    current_speaker.z = pos_node.attribute("Z").as_double();
+
+    double gain_db = speaker_node.attribute("GAIN").as_double(0.0);
+    current_speaker.gain = from_db(gain_db);
+
+    output_file.speakers.push_back(current_speaker);
+  }
+
+  return output_file;
+}
 void fixup(file& f, fixup_options opts)
 {
   if(f.speakers.empty())

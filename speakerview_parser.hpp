@@ -5,6 +5,8 @@
 
 namespace spatparse::speakerview
 {
+std::optional<file> parse(std::string_view input);
+
 struct fixup_options
 {
   std::optional<double> normalize{};

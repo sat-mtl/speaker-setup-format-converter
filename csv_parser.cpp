@@ -64,7 +64,6 @@ try
     return std::nullopt;
   }
 
-  std::cerr << columns << "::" << r.rows() << "   " << has_xyz << ":" << has_aed << "\n";
   std::string v;
   for(const csv2::Reader<>::Row& row : r)
   {
@@ -126,5 +125,47 @@ catch(...)
 {
   std::cerr << "Parse error!\n ";
   return std::nullopt;
+}
+
+std::string to_string(const spatparse::csv::file& f)
+{
+  if(f.speakers.empty())
+  {
+    return "";
+  }
+
+  std::string csv_string;
+  csv_string.reserve(f.speakers.size() * 64); // Pre-allocate
+
+  std::visit([&csv_string](auto&& arg) {
+    using T = std::decay_t<decltype(arg)>;
+    if constexpr(std::is_same_v<T, spatparse::csv::xyz_position>)
+    {
+      csv_string += "names,x,y,z\n";
+    }
+    else if constexpr(std::is_same_v<T, spatparse::csv::aed_position>)
+    {
+      csv_string += "names,azimuth,elevation,distance\n";
+    }
+  }, f.speakers.front().position);
+
+  for(const auto& speaker : f.speakers)
+  {
+    std::visit([&](auto&& arg) {
+      using T = std::decay_t<decltype(arg)>;
+      if constexpr(std::is_same_v<T, spatparse::csv::xyz_position>)
+      {
+        csv_string += std::format(
+            "{},{:.4f},{:.4f},{:.4f}\n", speaker.name, arg.x, arg.y, arg.z);
+      }
+      else if constexpr(std::is_same_v<T, spatparse::csv::aed_position>)
+      {
+        csv_string += std::format(
+            "{},{:.4f},{:.4f},{:.4f}\n", speaker.name, arg.a, arg.e, arg.d);
+      }
+    }, speaker.position);
+  }
+
+  return csv_string;
 }
 }

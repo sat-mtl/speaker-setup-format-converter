@@ -2,6 +2,7 @@
 
 #include <ctre.hpp>
 
+#include <format>
 #include <ranges>
 
 namespace spatparse::spat
@@ -123,5 +124,52 @@ try
 catch(...)
 {
   return std::nullopt;
+}
+
+std::string to_string(const spatparse::spat::file& f)
+{
+  std::string spat_string = R"_({\rtf1\ansi\ansicpg1252\cocoartf2639
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww10440\viewh12340\viewkind0
+\pard\tx566\tx1133\tx1700\tx2267\tx2834\tx3401\tx3968\tx4535\tx5102\tx5669\tx6236\tx6803\pardirnatural\partightenfactor0
+
+\f0\fs24 \cf0 )_";
+  spat_string.reserve(f.loudspeakers.size() * 128 + 256);
+
+  spat_string += std::format(
+      "/speaker/number {}\\\n"
+      "/speakers/correction/delay \"{}\"\\\n"
+      "/speakers/correction/gain \"{}\"\\\n"
+      "/speakers/aed",
+      f.loudspeakers.size(), f.header.correction.delay, f.header.correction.gain);
+
+  for(const auto& spk : f.loudspeakers)
+  {
+    spat_string += std::format(
+        " {:.6f} {:.6f} {:.6f}", spk.azimuth, spk.elevation, spk.distance);
+  }
+  spat_string += "\\\n";
+
+  for(size_t i = 0; i < f.loudspeakers.size(); ++i)
+  {
+    spat_string
+        += std::format("/speaker/{}/delay {:.6f}\\\n", i + 1, f.loudspeakers[i].delay);
+  }
+  for(size_t i = 0; i < f.loudspeakers.size(); ++i)
+  {
+    spat_string += std::format(
+        "/speaker/{}/gain/db {:.6f}\\\n", i + 1, f.loudspeakers[i].gain_db);
+  }
+  for(size_t i = 0; i < f.loudspeakers.size(); ++i)
+  {
+    spat_string
+        += std::format("/speaker/{}/name \"{}\"\\\n", i + 1, f.loudspeakers[i].name);
+  }
+
+  spat_string.pop_back();
+  spat_string.push_back('}');
+  return spat_string;
 }
 }

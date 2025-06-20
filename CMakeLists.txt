@@ -8,6 +8,8 @@ project(spat-format-converter
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(BUILD_SHARED_LIBS OFF)
+
 include(FetchContent)
 
 FetchContent_Declare(
@@ -42,6 +44,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(args)
 
+FetchContent_Declare(
+  pugixml
+  GIT_SHALLOW    TRUE
+  GIT_REPOSITORY https://github.com/zeux/pugixml
+  GIT_TAG        v1.15
+)
+FetchContent_MakeAvailable(pugixml)
+
 add_library(spat-format-converter
   converter.hpp
   converter.cpp
@@ -71,6 +81,7 @@ target_link_libraries(spat-format-converter
   PRIVATE
     ctre::ctre
     csv2::csv2
+    pugixml-static
 )
 
 add_executable(ease-test

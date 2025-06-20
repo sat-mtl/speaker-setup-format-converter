@@ -20,21 +20,25 @@ struct cli_options
   bool recenter{};
 };
 
+static const std::set<std::string> supported_formats{"xld",  "ease",  "csv",
+                                                     "spat", "aiira", "speakerview"};
+
 bool process(const cli_options& opts)
 {
   std::ifstream in_file(opts.filename);
   if(!in_file.is_open())
     throw std::runtime_error("Cannot open file!");
 
-  std::set<std::string> in_formats{"ease", "csv", "spat", "aiira"};
-  auto it = in_formats.find(opts.in_format);
-  if(it == in_formats.end())
+  auto in_format_it = supported_formats.find(opts.in_format);
+  if(in_format_it == supported_formats.end())
     throw std::runtime_error("Wrong input format!");
 
-  // FIXME out format when we have another than speakerview
+  auto out_format_it = supported_formats.find(opts.out_format);
+  if(out_format_it == supported_formats.end())
+    throw std::runtime_error("Wrong output format!");
 
   // Read file
-  auto size = std::filesystem::file_size(opts.filename);
+  const auto size = std::filesystem::file_size(opts.filename);
   if(size >= 1024 * 1024 * 1024)
     throw std::runtime_error("File unsupported (weirdly large size > 1GB)");
 
@@ -44,39 +48,68 @@ bool process(const cli_options& opts)
   spatparse::speakerview::fixup_options out_opts{
       .normalize = opts.normalize, .recenter = opts.recenter};
 
-  auto output = [&](spatparse::speakerview::file&& converted) {
-    spatparse::speakerview::fixup(converted, out_opts);
-    auto string = spatparse::speakerview::to_string(converted);
-    std::cout << string << std::endl;
-  };
-  if(opts.in_format == "ease")
+  // 1. Parse input into the generic format
+  spatparse::unified::loudspeaker_configuration parsed;
+  if(opts.in_format == "ease" || opts.in_format == "xld")
   {
     if(auto in = spatparse::ease::parse(bytes))
-      output(spatparse::to_speakerview(*in));
-    else
-      throw std::runtime_error("Could not parse input");
+      spatparse::convert(*in, parsed);
   }
   else if(opts.in_format == "csv")
   {
     if(auto in = spatparse::csv::parse(bytes))
-      output(spatparse::to_speakerview(*in));
-    else
-      throw std::runtime_error("Could not parse input");
+      spatparse::convert(*in, parsed);
   }
   else if(opts.in_format == "spat")
   {
     if(auto in = spatparse::spat::parse(bytes))
-      output(spatparse::to_speakerview(*in));
-    else
-      throw std::runtime_error("Could not parse input");
+      spatparse::convert(*in, parsed);
   }
   else if(opts.in_format == "aiira")
   {
     if(auto in = spatparse::aiira::parse(bytes))
-      output(spatparse::to_speakerview(*in));
-    else
-      throw std::runtime_error("Could not parse input");
+      spatparse::convert(*in, parsed);
   }
+  else if(opts.in_format == "speakerview")
+  {
+    if(auto in = spatparse::speakerview::parse(bytes))
+      spatparse::convert(*in, parsed);
+  }
+
+  if(parsed.loudspeakers.empty())
+    throw std::runtime_error(std::format("Could not parse {} input", opts.in_format));
+
+  // 2. Convert generic format into desired output format
+
+  if(opts.out_format == "ease" || opts.out_format == "xld")
+  {
+    spatparse::ease::file res;
+    spatparse::convert(parsed, res);
+    // output(res);
+  }
+  else if(opts.out_format == "csv")
+  {
+    spatparse::csv::file res;
+    spatparse::convert(parsed, res);
+  }
+  else if(opts.out_format == "spat")
+  {
+    spatparse::spat::file res;
+    spatparse::convert(parsed, res);
+  }
+  else if(opts.out_format == "aiira")
+  {
+    spatparse::aiira::file res;
+    spatparse::convert(parsed, res);
+  }
+  else if(opts.out_format == "speakerview")
+  {
+    spatparse::speakerview::file res;
+    spatparse::convert(parsed, res);
+    spatparse::speakerview::fixup(res, out_opts);
+    std::cout << spatparse::speakerview::to_string(res) << std::endl;
+  }
+
   return true;
 }
 
@@ -89,7 +122,7 @@ int main(int argc, char** argv)
       "spartparse CLI",
       "A tool for converting speaker position file formats.\n"
       "Example: ./spatparsecli --normalize --in-format=ease --out-format=speakerview "
-      "my_file.ease");
+      "my_file.xld");
   parser.helpParams.width = 120;
   args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
   args::CompletionFlag completion(parser, {"complete"});
@@ -97,9 +130,10 @@ int main(int argc, char** argv)
   args::Positional<std::string> filename(
       parser, "filename", "File to open", args::Options::Required);
   args::ValueFlag<std::string> in_format(
-      parser, "input file format", "One of ease, csv, spat, aiira", {"in-format"});
+      parser, "input file format", "One of xld, ease, csv, spat, aiira", {"in-format"});
   args::ValueFlag<std::string> out_format(
-      parser, "output file format", "speakerview", {"out-format"});
+      parser, "output file format", "One of xld, ease, csv, spat, aiira",
+      {"out-format"});
 
   args::ValueFlag<double> normalize(
       parser, "normalize", "Rescale all distances to this ratio", {"normalize"}, -1e99);
