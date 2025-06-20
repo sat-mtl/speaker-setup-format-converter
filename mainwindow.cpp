@@ -113,61 +113,74 @@ void MainWindow::onLoadFile()
       = "All Supported (*.xld *.ease *.json *.rtf *.csv *.xml);;EASE Files (*.xld "
         "*.ease);;AIIRA Files (*.json);;SPAT Files (*.rtf);;CSV Files "
         "(*.csv);;SpeakerView Files (*.xml);;All Files (*)";
-  QString filePath = QFileDialog::getOpenFileName(
-      this, "Load Speaker Configuration", QString(), filter);
 
-  if(filePath.isEmpty())
-  {
-    return;
-  }
-
-  QFile file(filePath);
-  if(!file.open(QIODevice::ReadOnly | QIODevice::Text))
-  {
-    QMessageBox::critical(this, "Error", "Could not open file: " + file.errorString());
-    return;
-  }
-    
-    QTextStream stream(&file);
-    QString content = stream.readAll();
-    m_inputTextEdit->setPlainText(content);
-    m_currentFilePath = filePath;
-    
-    // Auto-detect format if needed
-    if (m_inputFormatCombo->currentIndex() == 0) {
-        std::string detectedFormat = detectFormat(filePath);
-        if (!detectedFormat.empty()) {
-            for (int i = 1; i < m_inputFormatCombo->count(); ++i) {
-                if (m_inputFormatCombo->itemText(i).toLower() == QString::fromStdString(detectedFormat).toLower()) {
-                    m_inputFormatCombo->setCurrentIndex(i);
-                    break;
-                }
-            }
-        }
+  QFileDialog::getOpenFileContent(
+      filter, [this](const QString& fileName, const QByteArray& fileContent) {
+    if(!fileName.isEmpty())
+    {
+      doLoadFile(fileName, fileContent);
     }
-    
-    m_statusLabel->setText("Loaded: " + QFileInfo(filePath).fileName());
+  });
 }
 
+void MainWindow::doLoadFile(const QString& filePath, const QByteArray& fileContent)
+{
+  if(filePath.isEmpty())
+    return;
+
+  QString content = fileContent;
+  m_inputTextEdit->setPlainText(content);
+  m_currentFilePath = filePath;
+
+  // Auto-detect format if needed
+  if(m_inputFormatCombo->currentIndex() == 0)
+  {
+    std::string detectedFormat = detectFormat(filePath);
+    if(!detectedFormat.empty())
+    {
+      for(int i = 1; i < m_inputFormatCombo->count(); ++i)
+      {
+        if(m_inputFormatCombo->itemText(i).toLower()
+           == QString::fromStdString(detectedFormat).toLower())
+        {
+          m_inputFormatCombo->setCurrentIndex(i);
+          break;
+        }
+      }
+    }
+  }
+
+  m_statusLabel->setText("Loaded: " + QFileInfo(filePath).fileName());
+}
 void MainWindow::onSaveFile()
 {
-    QString filter = "SpeakerView Files (*.xml);;All Files (*)";
-    QString filePath = QFileDialog::getSaveFileName(this, "Save Converted File", QString(), filter);
-    
-    if (filePath.isEmpty()) {
-        return;
-    }
-    
-    QFile file(filePath);
-    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::critical(this, "Error", "Could not save file: " + file.errorString());
-        return;
-    }
-    
-    QTextStream stream(&file);
-    stream << m_outputTextEdit->toPlainText();
-    
-    m_statusLabel->setText("Saved: " + QFileInfo(filePath).fileName());
+  std::string outputFormat = m_outputFormatCombo->currentText().toStdString();
+  QString hint;
+
+  if(outputFormat == "EASE")
+  {
+    hint = "speakers.xld";
+  }
+  else if(outputFormat == "AIIRA")
+  {
+    hint = "speakers.json";
+  }
+  else if(outputFormat == "SPAT")
+  {
+    hint = "speakers.rtf";
+  }
+  else if(outputFormat == "CSV")
+  {
+    hint = "speakers.csv";
+  }
+  else if(outputFormat == "SpeakerView")
+  {
+    hint = "speakers.xml";
+  }
+
+  QFileDialog::saveFileContent(m_outputTextEdit->toPlainText().toUtf8(), hint, this);
+
+  m_statusLabel->setText("Saved!");
 }
 
 void MainWindow::onConvert()

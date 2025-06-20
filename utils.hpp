@@ -1,12 +1,34 @@
 #pragma once
 #include <cmath>
 
+#if __has_include(<charconv>) && defined(__cpp_lib_to_chars)
+#include <charconv>
+#else
+#include <boost/lexical_cast.hpp>
+#endif
 #include <numbers>
+#include <optional>
+#include <string_view>
 #include <tuple>
 
 namespace spatparse
 {
 
+template <typename T>
+static std::optional<T> parse_strict(std::string_view instance) noexcept
+{
+  T n{};
+#if defined(__cpp_lib_to_chars)
+  const auto begin = instance.data();
+  const auto end = instance.data() + instance.size();
+  const auto [ptr, ec] = std::from_chars(begin, end, n);
+  return (ec == std::errc{} && ptr == end) ? std::optional<T>{n} : std::nullopt;
+#else
+  if(boost::conversion::detail::try_lexical_convert(instance, n))
+    return n;
+  return std::nullopt;
+#endif
+}
 static constexpr auto aed_to_cartesian(double a, double e, double d)
 {
   const constexpr auto deg_to_rad = 1.745329251994329576923690768488612713e-02;

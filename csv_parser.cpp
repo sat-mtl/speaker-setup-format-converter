@@ -1,5 +1,7 @@
 #include "csv_parser.hpp"
 
+#include "utils.hpp"
+
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
@@ -85,13 +87,10 @@ try
       }
       else
       {
-        double num{};
-        auto res = std::from_chars(v.data(), v.data() + v.size(), num);
-        if(res.ec != std::errc{})
-        {
-          std::cerr << "Parse number error!\n ";
+        auto res = parse_strict<double>(v);
+        if(!res)
           return std::nullopt;
-        }
+        double num = *res;
 
         if(column == col_x)
           xyz.x = num;

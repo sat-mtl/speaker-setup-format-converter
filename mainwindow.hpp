@@ -20,6 +20,7 @@ public:
 
 private slots:
     void onLoadFile();
+    void doLoadFile(const QString& fileName, const QByteArray& fileContent);
     void onSaveFile();
     void onConvert();
     void onInputFormatChanged(int index);

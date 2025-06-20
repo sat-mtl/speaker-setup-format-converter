@@ -1,5 +1,7 @@
 #include "spat_parser.hpp"
 
+#include "utils.hpp"
+
 #include <ctre.hpp>
 
 #include <format>
@@ -44,16 +46,14 @@ try
     else if(auto m = ctre::match<"/speaker/([0-9]+)/delay (.*)">(line))
     {
       const int speaker_idx = m.get<1>().to_number() - 1;
-      const auto delay = m.get<2>().to_number<double>();
-
-      at_i(speaker_idx).delay = delay;
+      if(const auto delay = spatparse::parse_strict<double>(m.get<2>().to_view()))
+        at_i(speaker_idx).delay = *delay;
     }
     else if(auto m = ctre::match<"/speaker/([0-9]+)/gain/db (.*)">(line))
     {
       const int speaker_idx = m.get<1>().to_number() - 1;
-      const auto gain_db = m.get<2>().to_number<double>();
-
-      at_i(speaker_idx).gain_db = gain_db;
+      if(const auto gain_db = spatparse::parse_strict<double>(m.get<2>().to_view()))
+        at_i(speaker_idx).gain_db = *gain_db;
     }
     else if(auto m = ctre::match<"/speaker/([0-9]+)/name \"(.*)\"">(line))
     {
@@ -91,8 +91,10 @@ try
       double a{}, e{}, d{};
       for(const auto word : std::views::split(m.get<1>().to_view(), ' '))
       {
-        double result{};
-        std::from_chars(word.data(), word.data() + word.size(), result);
+        auto res = parse_strict<double>(std::string_view{word});
+        if(!res)
+          return std::nullopt;
+        double result = *res;
 
         switch(i)
         {

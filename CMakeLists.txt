@@ -10,6 +10,10 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(BUILD_SHARED_LIBS OFF)
 
+if(EMSCRIPTEN)
+  add_link_options("--bind")
+endif()
+
 include(FetchContent)
 
 FetchContent_Declare(
@@ -129,8 +133,8 @@ target_link_libraries(spatparsecli PRIVATE spat-format-converter args)
 find_package(Qt6 COMPONENTS Core Widgets QUIET)
 if(Qt6_FOUND)
   set(CMAKE_AUTOMOC ON)
-  
-  add_executable(spatconverter-gui
+
+  qt_add_executable(spatconverter-gui
     gui_main.cpp
     mainwindow.cpp
     mainwindow.hpp
@@ -146,6 +150,7 @@ if(Qt6_FOUND)
     WIN32_EXECUTABLE TRUE
     MACOSX_BUNDLE TRUE
   )
+  qt_finalize_project()
 else()
   message(STATUS "Qt6 not found, GUI will not be built")
 endif()
