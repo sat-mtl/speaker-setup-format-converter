@@ -14,6 +14,7 @@ struct loudspeaker
   double y{};
   double z{};
 
+  /** Follows the SpatGRIS convention: 0-360° **/
   double yaw{};
   double pitch{};
   double roll{};

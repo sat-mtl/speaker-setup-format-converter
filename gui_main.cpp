@@ -1,7 +1,8 @@
 #include "mainwindow.hpp"
+
 #include <QApplication>
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
   // Make sure numbers are parsed with dots
   qputenv("LC_ALL", "C");

@@ -117,6 +117,10 @@ add_executable(converter-test
   tests/test_converter.cpp
 )
 
+add_executable(azimuth-test
+  tests/test_azimuth_conversion.cpp
+)
+
 add_executable(spatparsecli
   cli.cpp
 )
@@ -127,6 +131,7 @@ target_link_libraries(spat-test PRIVATE spat-format-converter)
 target_link_libraries(csv-test PRIVATE spat-format-converter)
 target_link_libraries(speakerview-test PRIVATE spat-format-converter)
 target_link_libraries(converter-test PRIVATE spat-format-converter)
+target_link_libraries(azimuth-test PRIVATE spat-format-converter Catch2::Catch2WithMain)
 target_link_libraries(spatparsecli PRIVATE spat-format-converter args)
 
 # Qt GUI Application

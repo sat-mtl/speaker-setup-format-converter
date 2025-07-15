@@ -22,8 +22,10 @@ void convert(
   {
     spatparse::unified::loudspeaker spk_out;
     spk_out.name = std::to_string(spk_in.channel);
+    // Convert from IEM AIIRAD azimuth to standard azimuth before cartesian conversion
+    double standard_azimuth = azimuth_from_iem_aiirad(spk_in.azimuth);
     spherical_to_cartesian(
-        spk_in.azimuth, spk_in.elevation, spk_in.radius, spk_out.x, spk_out.y,
+        standard_azimuth, spk_in.elevation, spk_in.radius, spk_out.x, spk_out.y,
         spk_out.z);
     spk_out.gain_db = to_db(spk_in.gain);
     spk_out.is_virtual = spk_in.imaginary;
@@ -112,8 +114,10 @@ void convert(
   {
     spatparse::unified::loudspeaker spk_out;
     spk_out.name = spk_in.name;
+    // Convert from Spat5 azimuth to standard azimuth before cartesian conversion
+    double standard_azimuth = azimuth_from_spat5(spk_in.azimuth);
     spherical_to_cartesian(
-        spk_in.azimuth, spk_in.elevation, spk_in.distance, spk_out.x, spk_out.y,
+        standard_azimuth, spk_in.elevation, spk_in.distance, spk_out.x, spk_out.y,
         spk_out.z);
     spk_out.gain_db = spk_in.gain_db;
     spk_out.delay_ms = spk_in.delay;
@@ -164,9 +168,13 @@ void convert(
       continue;
 
     spatparse::aiira::loudspeaker spk_out;
+    double standard_azimuth, elevation, radius;
     cartesian_to_spherical(
-        spk_in.x, spk_in.y, spk_in.z, spk_out.azimuth, spk_out.elevation,
-        spk_out.radius);
+        spk_in.x, spk_in.y, spk_in.z, standard_azimuth, elevation, radius);
+    // Convert from standard azimuth to IEM AIIRAD azimuth
+    spk_out.azimuth = azimuth_to_iem_aiirad(standard_azimuth);
+    spk_out.elevation = elevation;
+    spk_out.radius = radius;
     spk_out.channel = channel_index++;
     spk_out.gain = from_db(spk_in.gain_db);
     spk_out.imaginary = spk_in.is_virtual;
@@ -256,9 +264,13 @@ void convert(
 
     spatparse::spat::loudspeaker spk_out;
     spk_out.name = spk_in.name;
+    double standard_azimuth, elevation, distance;
     cartesian_to_spherical(
-        spk_in.x, spk_in.y, spk_in.z, spk_out.azimuth, spk_out.elevation,
-        spk_out.distance);
+        spk_in.x, spk_in.y, spk_in.z, standard_azimuth, elevation, distance);
+    // Convert from standard azimuth to Spat5 azimuth
+    spk_out.azimuth = azimuth_to_spat5(standard_azimuth);
+    spk_out.elevation = elevation;
+    spk_out.distance = distance;
     spk_out.gain_db = spk_in.gain_db;
     spk_out.delay = spk_in.delay_ms;
     output.loudspeakers.push_back(spk_out);
@@ -311,8 +323,10 @@ speakerview::file to_speakerview(spat::file in)
     speakerview::loudspeaker sp_out;
     sp_out.name = sp_in.name;
     sp_out.gain = sp_in.gain_db;
+    // Convert from Spat5 azimuth to standard azimuth before cartesian conversion
+    double standard_azimuth = azimuth_from_spat5(sp_in.azimuth);
     std::tie(sp_out.x, sp_out.y, sp_out.z)
-        = aed_to_cartesian(sp_in.azimuth, sp_in.elevation, sp_in.distance);
+        = aed_to_cartesian(standard_azimuth, sp_in.elevation, sp_in.distance);
     res.speakers.push_back(sp_out);
   }
   return res;
@@ -327,8 +341,10 @@ speakerview::file to_speakerview(aiira::file in)
     speakerview::loudspeaker sp_out;
     sp_out.name = std::format("{}", i);
     sp_out.gain = sp_in.gain;
+    // Convert from IEM AIIRAD azimuth to standard azimuth before cartesian conversion
+    double standard_azimuth = azimuth_from_iem_aiirad(sp_in.azimuth);
     std::tie(sp_out.x, sp_out.y, sp_out.z)
-        = aed_to_cartesian(sp_in.azimuth, sp_in.elevation, sp_in.radius);
+        = aed_to_cartesian(standard_azimuth, sp_in.elevation, sp_in.radius);
     res.speakers.push_back(sp_out);
     i++;
   }

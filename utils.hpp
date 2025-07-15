@@ -101,4 +101,80 @@ static void cartesian_to_spherical(
   }
 }
 
+// Convert azimuth from standard range [0, 360) to IEM AIIRAD range [-180, 180]
+// IEM AIIRAD: negative values on the right (0 to 180 becomes 0 to -180)
+//              positive values on the left (180 to 360 becomes 180 to 0)
+static double azimuth_to_iem_aiirad(double azimuth)
+{
+  // Normalize to [0, 360) range
+  while(azimuth < 0.0)
+    azimuth += 360.0;
+  while(azimuth >= 360.0)
+    azimuth -= 360.0;
+
+  if(azimuth <= 180.0)
+  {
+    // Right side: 0 to 180 becomes 0 to -180
+    return -azimuth;
+  }
+  else
+  {
+    // Left side: 180 to 360 becomes 180 to 0
+    return 360.0 - azimuth;
+  }
+}
+
+// Convert azimuth from IEM AIIRAD range [-180, 180] to standard range [0, 360)
+static double azimuth_from_iem_aiirad(double azimuth)
+{
+  if(azimuth <= 0.0)
+  {
+    // Right side: 0 to -180 becomes 0 to 180
+    return -azimuth;
+  }
+  else
+  {
+    // Left side: 180 to 0 becomes 180 to 360
+    return 360.0 - azimuth;
+  }
+}
+
+// Convert azimuth from standard range [0, 360) to Spat5 range [-180, 180]
+// Spat5: positive values on the right (0 to 180 stays 0 to 180)
+//        negative values on the left (180 to 360 becomes -180 to 0)
+static double azimuth_to_spat5(double azimuth)
+{
+  // Normalize to [0, 360) range
+  while(azimuth < 0.0)
+    azimuth += 360.0;
+  while(azimuth >= 360.0)
+    azimuth -= 360.0;
+
+  if(azimuth <= 180.0)
+  {
+    // Right side: stays the same
+    return azimuth;
+  }
+  else
+  {
+    // Left side: 180 to 360 becomes -180 to 0
+    return azimuth - 360.0;
+  }
+}
+
+// Convert azimuth from Spat5 range [-180, 180] to standard range [0, 360)
+static double azimuth_from_spat5(double azimuth)
+{
+  if(azimuth < 0.0)
+  {
+    // Left side: -180 to 0 becomes 180 to 360
+    return azimuth + 360.0;
+  }
+  else
+  {
+    // Right side: stays the same
+    return azimuth;
+  }
+}
+
 }

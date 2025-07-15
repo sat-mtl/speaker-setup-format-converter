@@ -20,8 +20,8 @@ struct cli_options
   bool recenter{};
 };
 
-static const std::set<std::string> supported_formats{"xld",  "ease",  "csv",
-                                                     "spat_ircam", "iem", "spatgris"};
+static const std::set<std::string> supported_formats{"xld",        "ease", "csv",
+                                                     "spat_ircam", "iem",  "spatgris"};
 
 bool process(const cli_options& opts)
 {
