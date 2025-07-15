@@ -21,7 +21,7 @@ struct cli_options
 };
 
 static const std::set<std::string> supported_formats{"xld",  "ease",  "csv",
-                                                     "spat", "aiira", "speakerview"};
+                                                     "spat_ircam", "iem", "spatgris"};
 
 bool process(const cli_options& opts)
 {
@@ -60,17 +60,17 @@ bool process(const cli_options& opts)
     if(auto in = spatparse::csv::parse(bytes))
       spatparse::convert(*in, parsed);
   }
-  else if(opts.in_format == "spat")
+  else if(opts.in_format == "spat_ircam")
   {
     if(auto in = spatparse::spat::parse(bytes))
       spatparse::convert(*in, parsed);
   }
-  else if(opts.in_format == "aiira")
+  else if(opts.in_format == "iem")
   {
     if(auto in = spatparse::aiira::parse(bytes))
       spatparse::convert(*in, parsed);
   }
-  else if(opts.in_format == "speakerview")
+  else if(opts.in_format == "spatgris")
   {
     if(auto in = spatparse::speakerview::parse(bytes))
       spatparse::convert(*in, parsed);
@@ -92,17 +92,17 @@ bool process(const cli_options& opts)
     spatparse::csv::file res;
     spatparse::convert(parsed, res);
   }
-  else if(opts.out_format == "spat")
+  else if(opts.out_format == "spat_ircam")
   {
     spatparse::spat::file res;
     spatparse::convert(parsed, res);
   }
-  else if(opts.out_format == "aiira")
+  else if(opts.out_format == "iem")
   {
     spatparse::aiira::file res;
     spatparse::convert(parsed, res);
   }
-  else if(opts.out_format == "speakerview")
+  else if(opts.out_format == "spatgris")
   {
     spatparse::speakerview::file res;
     spatparse::convert(parsed, res);

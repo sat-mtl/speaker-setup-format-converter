@@ -46,7 +46,7 @@ void MainWindow::setupUi()
     formatLayout->addWidget(new QLabel("Input Format:"));
     
     m_inputFormatCombo = new QComboBox();
-    m_inputFormatCombo->addItems({"Auto-detect", "EASE", "AIIRA", "SPAT", "CSV", "SpeakerView"});
+    m_inputFormatCombo->addItems({"Auto-detect", "EASE", "IEM", "Spat (IRCAM)", "CSV", "SpatGRIS"});
     connect(m_inputFormatCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &MainWindow::onInputFormatChanged);
     formatLayout->addWidget(m_inputFormatCombo);
@@ -66,7 +66,7 @@ void MainWindow::setupUi()
 
     buttonLayout->addWidget(new QLabel("Output Format:"));
     m_outputFormatCombo = new QComboBox();
-    m_outputFormatCombo->addItems({"EASE", "AIIRA", "SPAT", "CSV", "SpeakerView"});
+    m_outputFormatCombo->addItems({"EASE", "IEM", "Spat (IRCAM)", "CSV", "SpatGRIS"});
     m_outputFormatCombo->setCurrentIndex(0);
     buttonLayout->addWidget(m_outputFormatCombo);
     m_convertButton = new QPushButton("Convert");
@@ -161,11 +161,11 @@ void MainWindow::onSaveFile()
   {
     hint = "speakers.xld";
   }
-  else if(outputFormat == "AIIRA")
+  else if(outputFormat == "IEM")
   {
     hint = "speakers.json";
   }
-  else if(outputFormat == "SPAT")
+  else if(outputFormat == "Spat (IRCAM)")
   {
     hint = "speakers.rtf";
   }
@@ -173,7 +173,7 @@ void MainWindow::onSaveFile()
   {
     hint = "speakers.csv";
   }
-  else if(outputFormat == "SpeakerView")
+  else if(outputFormat == "SpatGRIS")
   {
     hint = "speakers.xml";
   }
@@ -220,7 +220,7 @@ void MainWindow::onConvert()
           convert(*parsed, *unified_config);
         }
       }
-      else if(inputFormat == "AIIRA")
+      else if(inputFormat == "IEM")
       {
         if(auto parsed = spatparse::aiira::parse(m_inputContent))
         {
@@ -228,7 +228,7 @@ void MainWindow::onConvert()
           convert(*parsed, *unified_config);
         }
       }
-      else if(inputFormat == "SPAT")
+      else if(inputFormat == "Spat (IRCAM)")
       {
         if(auto parsed = spatparse::spat::parse(m_inputContent))
         {
@@ -244,7 +244,7 @@ void MainWindow::onConvert()
           convert(*parsed, *unified_config);
         }
       }
-      else if(inputFormat == "SpeakerView")
+      else if(inputFormat == "SpatGRIS")
       {
         if(auto parsed = spatparse::speakerview::parse(m_inputContent))
         {
@@ -264,13 +264,13 @@ void MainWindow::onConvert()
           convert(*unified_config, f);
           output_string = ease::to_string(f);
         }
-        else if(outputFormat == "AIIRA")
+        else if(outputFormat == "IEM")
         {
           spatparse::aiira::file f;
           convert(*unified_config, f);
           output_string = to_string(f);
         }
-        else if(outputFormat == "SPAT")
+        else if(outputFormat == "Spat (IRCAM)")
         {
           spatparse::spat::file f;
           convert(*unified_config, f);
@@ -282,7 +282,7 @@ void MainWindow::onConvert()
           convert(*unified_config, f);
           output_string = to_string(f);
         }
-        else if(outputFormat == "SpeakerView")
+        else if(outputFormat == "SpatGRIS")
         {
           spatparse::speakerview::file f;
           convert(*unified_config, f);
@@ -328,10 +328,10 @@ std::string MainWindow::detectFormat(const QString& filePath)
     QString ext = info.suffix().toLower();
     
     if (ext == "ease") return "EASE";
-    if (ext == "json") return "AIIRA";
-    if (ext == "rtf") return "SPAT";
+    if (ext == "json") return "IEM";
+    if (ext == "rtf") return "Spat (IRCAM)";
     if (ext == "csv") return "CSV";
-    if (ext == "xml") return "SpeakerView";
+    if (ext == "xml") return "SpatGRIS";
     
     return "";
 }
