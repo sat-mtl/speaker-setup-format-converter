@@ -58,6 +58,8 @@ void MainWindow::setupUi()
     mainLayout->addWidget(inputLabel);
     
     m_inputTextEdit = new QTextEdit();
+    m_inputTextEdit->setAcceptRichText(false);
+    m_inputTextEdit->setAutoFormatting(QTextEdit::AutoNone);
     m_inputTextEdit->setMinimumHeight(200);
     mainLayout->addWidget(m_inputTextEdit);
     
