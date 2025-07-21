@@ -79,6 +79,10 @@ add_library(spat-format-converter
   speakerview_parser.hpp
   speakerview_parser.cpp
   speakerview_model.hpp
+
+  fourdsound_parser.hpp
+  fourdsound_parser.cpp
+  fourdsound_model.hpp
 )
 
 target_link_libraries(spat-format-converter

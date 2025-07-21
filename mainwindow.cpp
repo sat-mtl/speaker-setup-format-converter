@@ -4,6 +4,7 @@
 #include "converter.hpp"
 #include "csv_parser.hpp"
 #include "ease_parser.hpp"
+#include "fourdsound_parser.hpp"
 #include "spat_parser.hpp"
 #include "speakerview_parser.hpp"
 
@@ -47,7 +48,7 @@ void MainWindow::setupUi()
 
   m_inputFormatCombo = new QComboBox();
   m_inputFormatCombo->addItems(
-      {"Auto-detect", "EASE", "IEM", "Spat (IRCAM)", "CSV", "SpatGRIS"});
+      {"Auto-detect", "EASE", "IEM", "Spat (IRCAM)", "CSV", "SpatGRIS", "4D Sound"});
   connect(
       m_inputFormatCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
       &MainWindow::onInputFormatChanged);
@@ -70,7 +71,7 @@ void MainWindow::setupUi()
 
   buttonLayout->addWidget(new QLabel("Output Format:"));
   m_outputFormatCombo = new QComboBox();
-  m_outputFormatCombo->addItems({"EASE", "IEM", "Spat (IRCAM)", "CSV", "SpatGRIS"});
+  m_outputFormatCombo->addItems({"EASE", "IEM", "Spat (IRCAM)", "CSV", "SpatGRIS", "4D Sound"});
   m_outputFormatCombo->setCurrentIndex(0);
   buttonLayout->addWidget(m_outputFormatCombo);
   m_convertButton = new QPushButton("Convert");
@@ -117,7 +118,7 @@ void MainWindow::onLoadFile()
   QString filter
       = "All Supported (*.xld *.ease *.json *.rtf *.csv *.xml);;EASE Files (*.xld "
         "*.ease);;AIIRA Files (*.json);;SPAT Files (*.rtf);;CSV Files "
-        "(*.csv);;SpeakerView Files (*.xml);;All Files (*)";
+        "(*.csv);;SpeakerView Files (*.xml);;4D Sound Files (*.xml);;All Files (*)";
 
   QFileDialog::getOpenFileContent(
       filter, [this](const QString& fileName, const QByteArray& fileContent) {
@@ -183,7 +184,7 @@ void MainWindow::onSaveFile()
     hint = "speakers.xml";
   }
 
-  QFileDialog::saveFileContent(m_outputTextEdit->toPlainText().toUtf8(), hint, this);
+  QFileDialog::saveFileContent(m_outputTextEdit->toPlainText().toUtf8(), hint);
 
   m_statusLabel->setText("Saved!");
 }
@@ -262,6 +263,17 @@ void MainWindow::onConvert()
         convert(*parsed, *unified_config);
       }
     }
+    else if(inputFormat == "4D Sound")
+    {
+      if(auto parsed = spatparse::fourdsound::parse(m_inputContent))
+      {
+        unified_config.emplace();
+        convert(*parsed, *unified_config);
+      }
+    }
+
+    QString qinputFormat  = QString::fromStdString(inputFormat);
+    QString qoutputFormat = QString::fromStdString(outputFormat);
 
     // Step 2: Check for parsing success and serialize from the unified format.
     if(unified_config)
@@ -298,19 +310,25 @@ void MainWindow::onConvert()
         convert(*unified_config, f);
         output_string = to_string(f); // This uses your existing target format
       }
+      else if(outputFormat == "4D Sound")
+      {
+        spatparse::fourdsound::file f;
+        convert(*unified_config, f);
+        output_string = to_string(f);
+      }
 
       // Update the UI with the result
       m_outputTextEdit->setPlainText(QString::fromStdString(output_string));
       m_saveButton->setEnabled(true);
       m_statusLabel->setText(
-          QString("Conversion from %1 to %2 complete").arg(inputFormat, outputFormat));
+          QString("Conversion from %1 to %2 complete").arg(qinputFormat).arg(qoutputFormat));
     }
     else
     {
       // Parsing failed
       QMessageBox::critical(
           this, "Error",
-          QString("Failed to parse input file as %1 format.").arg(inputFormat));
+          QString("Failed to parse input file as %1 format.").arg(qinputFormat));
       m_statusLabel->setText("Conversion failed");
     }
   }
@@ -346,7 +364,20 @@ std::string MainWindow::detectFormat(const QString& filePath)
   if(ext == "csv")
     return "CSV";
   if(ext == "xml")
-    return "SpatGRIS";
+  {
+    // Need to check content to distinguish between SpatGRIS and 4D Sound
+    QFile file(filePath);
+    if(file.open(QIODevice::ReadOnly | QIODevice::Text))
+    {
+      QTextStream stream(&file);
+      QString content = stream.readAll();
+      if(content.contains("<setup"))
+        return "4D Sound";
+      else if(content.contains("<SPEAKER_SETUP"))
+        return "SpatGRIS";
+    }
+    return "SpatGRIS"; // Default to SpatGRIS for XML
+  }
 
   return "";
 }

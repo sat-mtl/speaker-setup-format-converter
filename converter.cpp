@@ -384,4 +384,67 @@ speakerview::file to_speakerview(csv::file in)
   }
   return res;
 }
+
+void convert(
+    const spatparse::fourdsound::file& input,
+    spatparse::unified::loudspeaker_configuration& output)
+{
+  output.name = "4D Sound Layout";
+  output.description = "A layout from 4D Sound";
+  output.length_unit = "m"; // 4D Sound typically uses meters
+  output.loudspeakers.clear();
+  output.loudspeakers.reserve(input.speakers.size());
+
+  for(const auto& spk_in : input.speakers)
+  {
+    spatparse::unified::loudspeaker spk_out;
+    spk_out.name = spk_in.id;
+    spk_out.x = spk_in.x;
+    spk_out.y = spk_in.y;
+    spk_out.z = spk_in.z;
+    spk_out.gain_db = 0.0; // No gain information in 4D Sound format
+    spk_out.delay_ms = 0.0; // No delay information in 4D Sound format
+    spk_out.is_enabled = true;
+    spk_out.is_virtual = (spk_in.speakerType == "sub"); // Mark subs as virtual
+    output.loudspeakers.push_back(spk_out);
+  }
+}
+
+void convert(
+    const spatparse::unified::loudspeaker_configuration& input,
+    spatparse::fourdsound::file& output)
+{
+  output.version = "2.1"; // Default to version 2.1
+  output.speakers.clear();
+  output.speakers.reserve(input.loudspeakers.size());
+
+  int channel = 0;
+  for(const auto& spk_in : input.loudspeakers)
+  {
+    spatparse::fourdsound::speaker spk_out;
+    spk_out.id = spk_in.name.empty() ? std::format("speaker_{}", channel) : spk_in.name;
+    spk_out.ch = channel++;
+    spk_out.x = spk_in.x;
+    spk_out.y = spk_in.y;
+    spk_out.z = spk_in.z;
+    spk_out.speakerType = spk_in.is_virtual ? "sub" : "satellite";
+    output.speakers.push_back(spk_out);
+  }
+}
+
+speakerview::file to_speakerview(fourdsound::file in)
+{
+  speakerview::file res;
+  for(const auto& sp_in : in.speakers)
+  {
+    speakerview::loudspeaker sp_out;
+    sp_out.name = sp_in.id;
+    sp_out.x = sp_in.x;
+    sp_out.y = sp_in.y;
+    sp_out.z = sp_in.z;
+    sp_out.gain = 1.0; // Default gain
+    res.speakers.push_back(sp_out);
+  }
+  return res;
+}
 }

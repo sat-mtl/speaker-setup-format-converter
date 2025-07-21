@@ -3,6 +3,7 @@
 #include "converter.hpp"
 #include "csv_parser.hpp"
 #include "ease_parser.hpp"
+#include "fourdsound_parser.hpp"
 #include "spat_parser.hpp"
 #include "speakerview_parser.hpp"
 
@@ -21,7 +22,7 @@ struct cli_options
 };
 
 static const std::set<std::string> supported_formats{"xld",        "ease", "csv",
-                                                     "spat_ircam", "iem",  "spatgris"};
+                                                     "spat_ircam", "iem",  "spatgris", "4dsound"};
 
 bool process(const cli_options& opts)
 {
@@ -75,40 +76,57 @@ bool process(const cli_options& opts)
     if(auto in = spatparse::speakerview::parse(bytes))
       spatparse::convert(*in, parsed);
   }
+  else if(opts.in_format == "4dsound")
+  {
+    if(auto in = spatparse::fourdsound::parse(bytes))
+      spatparse::convert(*in, parsed);
+  }
 
   if(parsed.loudspeakers.empty())
     throw std::runtime_error(std::format("Could not parse {} input", opts.in_format));
 
   // 2. Convert generic format into desired output format
 
+  std::string converted_output;
   if(opts.out_format == "ease" || opts.out_format == "xld")
   {
     spatparse::ease::file res;
     spatparse::convert(parsed, res);
-    // output(res);
+    converted_output = spatparse::ease::to_string(res);
   }
   else if(opts.out_format == "csv")
   {
     spatparse::csv::file res;
     spatparse::convert(parsed, res);
+    converted_output = spatparse::csv::to_string(res);
   }
   else if(opts.out_format == "spat_ircam")
   {
     spatparse::spat::file res;
     spatparse::convert(parsed, res);
+    converted_output = spatparse::spat::to_string(res);
   }
   else if(opts.out_format == "iem")
   {
     spatparse::aiira::file res;
     spatparse::convert(parsed, res);
+    converted_output = spatparse::aiira::to_string(res);
   }
   else if(opts.out_format == "spatgris")
   {
     spatparse::speakerview::file res;
     spatparse::convert(parsed, res);
     spatparse::speakerview::fixup(res, out_opts);
-    std::cout << spatparse::speakerview::to_string(res) << std::endl;
+    converted_output = spatparse::speakerview::to_string(res);
   }
+  else if(opts.out_format == "4dsound")
+  {
+    spatparse::fourdsound::file res;
+    spatparse::convert(parsed, res);
+    converted_output = spatparse::fourdsound::to_string(res);
+  }
+
+  std::cout << converted_output << std::endl;
 
   return true;
 }
@@ -130,9 +148,9 @@ int main(int argc, char** argv)
   args::Positional<std::string> filename(
       parser, "filename", "File to open", args::Options::Required);
   args::ValueFlag<std::string> in_format(
-      parser, "input file format", "One of xld, ease, csv, spat, aiira", {"in-format"});
+      parser, "input file format", "One of xld, ease, csv, spat, aiira, 4dsound", {"in-format"});
   args::ValueFlag<std::string> out_format(
-      parser, "output file format", "One of xld, ease, csv, spat, aiira",
+      parser, "output file format", "One of xld, ease, csv, spat, aiira, 4dsound",
       {"out-format"});
 
   args::ValueFlag<double> normalize(
@@ -144,7 +162,7 @@ int main(int argc, char** argv)
   }
   catch(const args::Completion& e)
   {
-    std::cout << e.what();
+    std::cout << parser;
     return 0;
   }
   catch(const args::Help&)
@@ -155,6 +173,11 @@ int main(int argc, char** argv)
   catch(const args::ParseError& e)
   {
     std::cerr << e.what() << std::endl;
+    std::cerr << parser;
+    return 1;
+  }
+  catch(...)
+  {
     std::cerr << parser;
     return 1;
   }
