@@ -432,19 +432,49 @@ void convert(
   }
 }
 
-speakerview::file to_speakerview(fourdsound::file in)
+void convert(
+    const spatparse::spat_revolution::file& in,
+    spatparse::unified::loudspeaker_configuration& output)
 {
-  speakerview::file res;
-  for(const auto& sp_in : in.speakers)
+  // If there are multiple configurations, use the first one
+  if(in.configurations.empty())
+    return;
+
+  const auto& config = in.configurations[0];
+  output.name = config.name;
+  output.description = config.channel_desc;
+
+  for(const auto& ch : config.channels)
   {
-    speakerview::loudspeaker sp_out;
-    sp_out.name = sp_in.id;
-    sp_out.x = sp_in.x;
-    sp_out.y = sp_in.y;
-    sp_out.z = sp_in.z;
-    sp_out.gain = 1.0; // Default gain
-    res.speakers.push_back(sp_out);
+    spatparse::unified::loudspeaker sp_out;
+    sp_out.name = ch.name;
+    sp_out.gain_db = 1.0; // No gain information in Spat Revolution format
+
+    // Convert spherical coordinates to Cartesian
+    // Spat Revolution uses degrees for azimuth and elevation
+    spherical_to_cartesian(
+        ch.azimuth, ch.elevation, ch.distance, sp_out.x, sp_out.y, sp_out.z);
+
+    output.loudspeakers.push_back(sp_out);
   }
-  return res;
+}
+
+void convert(
+    const spatparse::unified::loudspeaker_configuration& in,
+    spatparse::spat_revolution::file& output)
+{
+  spatparse::spat_revolution::configuration conf;
+  conf.name = in.name;
+  conf.channel_desc = in.description;
+
+  for(const auto& sp : in.loudspeakers)
+  {
+    spatparse::spat_revolution::channel ch_out;
+    ch_out.name = sp.name;
+    cartesian_to_spherical(
+        sp.x, sp.y, sp.z, ch_out.azimuth, ch_out.elevation, ch_out.distance);
+
+    conf.channels.push_back(ch_out);
+  }
 }
 }

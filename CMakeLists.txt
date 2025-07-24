@@ -83,6 +83,10 @@ add_library(spat-format-converter
   fourdsound_parser.hpp
   fourdsound_parser.cpp
   fourdsound_model.hpp
+
+  spat_revolution_parser.hpp
+  spat_revolution_parser.cpp
+  spat_revolution_model.hpp
 )
 
 target_link_libraries(spat-format-converter
@@ -125,6 +129,11 @@ add_executable(azimuth-test
   tests/test_azimuth_conversion.cpp
 )
 
+add_executable(spat-revolution-test
+  tests/test_spat_revolution.cpp
+  tests/spat_revolution.ioconfig
+)
+
 add_executable(spatparsecli
   cli.cpp
 )
@@ -136,6 +145,7 @@ target_link_libraries(csv-test PRIVATE spat-format-converter)
 target_link_libraries(speakerview-test PRIVATE spat-format-converter)
 target_link_libraries(converter-test PRIVATE spat-format-converter)
 target_link_libraries(azimuth-test PRIVATE spat-format-converter Catch2::Catch2WithMain)
+target_link_libraries(spat-revolution-test PRIVATE spat-format-converter)
 target_link_libraries(spatparsecli PRIVATE spat-format-converter args)
 
 # Qt GUI Application

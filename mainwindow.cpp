@@ -6,6 +6,7 @@
 #include "ease_parser.hpp"
 #include "fourdsound_parser.hpp"
 #include "spat_parser.hpp"
+#include "spat_revolution_parser.hpp"
 #include "speakerview_parser.hpp"
 
 #include <QComboBox>
@@ -48,7 +49,7 @@ void MainWindow::setupUi()
 
   m_inputFormatCombo = new QComboBox();
   m_inputFormatCombo->addItems(
-      {"Auto-detect", "EASE", "IEM", "Spat (IRCAM)", "CSV", "SpatGRIS", "4D Sound"});
+      {"Auto-detect", "EASE", "IEM", "Spat (IRCAM)", "CSV", "SpatGRIS", "4D Sound", "Spat Revolution"});
   connect(
       m_inputFormatCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
       &MainWindow::onInputFormatChanged);
@@ -71,7 +72,8 @@ void MainWindow::setupUi()
 
   buttonLayout->addWidget(new QLabel("Output Format:"));
   m_outputFormatCombo = new QComboBox();
-  m_outputFormatCombo->addItems({"EASE", "IEM", "Spat (IRCAM)", "CSV", "SpatGRIS", "4D Sound"});
+  m_outputFormatCombo->addItems(
+      {"EASE", "IEM", "Spat (IRCAM)", "CSV", "SpatGRIS", "4D Sound", "Spat Revolution"});
   m_outputFormatCombo->setCurrentIndex(0);
   buttonLayout->addWidget(m_outputFormatCombo);
   m_convertButton = new QPushButton("Convert");
@@ -118,7 +120,8 @@ void MainWindow::onLoadFile()
   QString filter
       = "All Supported (*.xld *.ease *.json *.rtf *.csv *.xml);;EASE Files (*.xld "
         "*.ease);;AIIRA Files (*.json);;SPAT Files (*.rtf);;CSV Files "
-        "(*.csv);;SpeakerView Files (*.xml);;4D Sound Files (*.xml);;All Files (*)";
+        "(*.csv);;SpeakerView Files (*.xml);;4D Sound Files (*.xml);;Spat Revolution "
+        "Files (*.ioconfig);;All Files (*)";
 
   QFileDialog::getOpenFileContent(
       filter, [this](const QString& fileName, const QByteArray& fileContent) {
@@ -182,6 +185,10 @@ void MainWindow::onSaveFile()
   else if(outputFormat == "SpatGRIS")
   {
     hint = "speakers.xml";
+  }
+  else if(outputFormat == "Spat Revolution")
+  {
+    hint = "speakers.ioconfig";
   }
 
   QFileDialog::saveFileContent(m_outputTextEdit->toPlainText().toUtf8(), hint);
@@ -266,6 +273,14 @@ void MainWindow::onConvert()
     else if(inputFormat == "4D Sound")
     {
       if(auto parsed = spatparse::fourdsound::parse(m_inputContent))
+      {
+        unified_config.emplace();
+        convert(*parsed, *unified_config);
+      }
+    }
+    else if(inputFormat == "Spat Revolution")
+    {
+      if(auto parsed = spatparse::spat_revolution::parse(m_inputContent))
       {
         unified_config.emplace();
         convert(*parsed, *unified_config);
@@ -363,6 +378,8 @@ std::string MainWindow::detectFormat(const QString& filePath)
     return "Spat (IRCAM)";
   if(ext == "csv")
     return "CSV";
+  if(ext == "ioconfig")
+    return "Spat Revolution";
   if(ext == "xml")
   {
     // Need to check content to distinguish between SpatGRIS and 4D Sound

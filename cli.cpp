@@ -5,6 +5,7 @@
 #include "ease_parser.hpp"
 #include "fourdsound_parser.hpp"
 #include "spat_parser.hpp"
+#include "spat_revolution_parser.hpp"
 #include "speakerview_parser.hpp"
 
 #include <clocale>
@@ -22,7 +23,7 @@ struct cli_options
 };
 
 static const std::set<std::string> supported_formats{"xld",        "ease", "csv",
-                                                     "spat_ircam", "iem",  "spatgris", "4dsound"};
+                                                     "spat_ircam", "iem",  "spatgris", "4dsound", "spat_revolution"};
 
 bool process(const cli_options& opts)
 {
@@ -81,6 +82,11 @@ bool process(const cli_options& opts)
     if(auto in = spatparse::fourdsound::parse(bytes))
       spatparse::convert(*in, parsed);
   }
+  else if(opts.in_format == "spat_revolution")
+  {
+    if(auto in = spatparse::spat_revolution::parse(bytes))
+      spatparse::convert(*in, parsed);
+  }
 
   if(parsed.loudspeakers.empty())
     throw std::runtime_error(std::format("Could not parse {} input", opts.in_format));
@@ -125,6 +131,12 @@ bool process(const cli_options& opts)
     spatparse::convert(parsed, res);
     converted_output = spatparse::fourdsound::to_string(res);
   }
+  else if(opts.out_format == "spat_revolution")
+  {
+    spatparse::spat_revolution::file res;
+    spatparse::convert(parsed, res);
+    converted_output = spatparse::spat_revolution::to_string(res);
+  }
 
   std::cout << converted_output << std::endl;
 
@@ -148,10 +160,10 @@ int main(int argc, char** argv)
   args::Positional<std::string> filename(
       parser, "filename", "File to open", args::Options::Required);
   args::ValueFlag<std::string> in_format(
-      parser, "input file format", "One of xld, ease, csv, spat, aiira, 4dsound", {"in-format"});
+      parser, "input file format", "One of xld, ease, csv, spat, aiira, 4dsound, spat_revolution", {"in-format"});
   args::ValueFlag<std::string> out_format(
-      parser, "output file format", "One of xld, ease, csv, spat, aiira, 4dsound",
-      {"out-format"});
+      parser, "output file format",
+      "One of xld, ease, csv, spat, aiira, 4dsound, spat_revolution", {"out-format"});
 
   args::ValueFlag<double> normalize(
       parser, "normalize", "Rescale all distances to this ratio", {"normalize"}, -1e99);

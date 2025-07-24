@@ -6,6 +6,7 @@
 #include "fourdsound_model.hpp"
 #include "generic_model.hpp"
 #include "spat_model.hpp"
+#include "spat_revolution_model.hpp"
 #include "speakerview_model.hpp"
 
 namespace spatparse
@@ -16,6 +17,8 @@ void convert(const spat::file& input, unified::loudspeaker_configuration& output
 void convert(const aiira::file& input, unified::loudspeaker_configuration& output);
 void convert(const csv::file& input, unified::loudspeaker_configuration& output);
 void convert(const fourdsound::file& input, unified::loudspeaker_configuration& output);
+void convert(
+    const spat_revolution::file& input, unified::loudspeaker_configuration& output);
 
 void convert(const unified::loudspeaker_configuration& input, speakerview::file& output);
 void convert(const unified::loudspeaker_configuration& input, ease::file& output);
@@ -23,7 +26,10 @@ void convert(const unified::loudspeaker_configuration& input, spat::file& output
 void convert(const unified::loudspeaker_configuration& input, aiira::file& output);
 void convert(const unified::loudspeaker_configuration& input, csv::file& output);
 void convert(const unified::loudspeaker_configuration& input, fourdsound::file& output);
+void convert(
+    const unified::loudspeaker_configuration& input, spat_revolution::file& output);
 
+// REMOVEME
 speakerview::file to_speakerview(ease::file);
 speakerview::file to_speakerview(spat::file);
 speakerview::file to_speakerview(aiira::file);
