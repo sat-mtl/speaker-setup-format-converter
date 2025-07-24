@@ -16,6 +16,7 @@ endif()
 
 include(FetchContent)
 
+if(BUILD_TESTING)
 FetchContent_Declare(
   Catch2
   GIT_SHALLOW    TRUE
@@ -23,6 +24,7 @@ FetchContent_Declare(
   GIT_TAG        v3.6.0)
 FetchContent_MakeAvailable(Catch2)
 list(APPEND CMAKE_MODULE_PATH "${Catch2_SOURCE_DIR}/extras")
+endif()
 
 FetchContent_Declare(
   csv2
@@ -96,6 +98,7 @@ target_link_libraries(spat-format-converter
     pugixml-static
 )
 
+if(BUILD_TESTING)
 add_executable(ease-test
   tests/test_ease.cpp
   tests/ease_sample.ease
@@ -133,11 +136,6 @@ add_executable(spat-revolution-test
   tests/test_spat_revolution.cpp
   tests/spat_revolution.ioconfig
 )
-
-add_executable(spatparsecli
-  cli.cpp
-)
-
 target_link_libraries(ease-test PRIVATE spat-format-converter)
 target_link_libraries(aiira-test PRIVATE spat-format-converter)
 target_link_libraries(spat-test PRIVATE spat-format-converter)
@@ -146,6 +144,12 @@ target_link_libraries(speakerview-test PRIVATE spat-format-converter)
 target_link_libraries(converter-test PRIVATE spat-format-converter)
 target_link_libraries(azimuth-test PRIVATE spat-format-converter Catch2::Catch2WithMain)
 target_link_libraries(spat-revolution-test PRIVATE spat-format-converter)
+endif()
+
+add_executable(spatparsecli
+  cli.cpp
+)
+
 target_link_libraries(spatparsecli PRIVATE spat-format-converter args)
 
 # Qt GUI Application
