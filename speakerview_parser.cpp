@@ -9,6 +9,9 @@
 #include <charconv>
 #include <format>
 #include <iostream>
+#include <random>
+#include <sstream>
+#include <iomanip>
 namespace spatparse::spatgris
 {
 
@@ -317,6 +320,105 @@ std::string to_string(const file& f)
 
   res.append(R"_(</SPEAKER_SETUP>
 )_");
+  return res;
+}
+
+// Helper function to generate a UUID-like string
+static std::string generate_uuid()
+{
+  static std::random_device rd;
+  static std::mt19937 gen(rd());
+  static std::uniform_int_distribution<> dis(0, 15);
+  static std::uniform_int_distribution<> dis2(8, 11);
+
+  std::stringstream ss;
+  ss << std::hex;
+  for (int i = 0; i < 8; i++) {
+    ss << dis(gen);
+  }
+  for (int i = 0; i < 4; i++) {
+    ss << dis(gen);
+  }
+  for (int i = 0; i < 4; i++) {
+    ss << dis(gen);
+  }
+  for (int i = 0; i < 4; i++) {
+    ss << dis2(gen);
+  }
+  for (int i = 0; i < 12; i++) {
+    ss << dis(gen);
+  }
+  return ss.str();
+}
+
+// Helper to output nodes recursively with proper indentation
+template<typename F>
+static void write_node_v4(std::string& res, const node& n, const std::string& indent, int& speaker_id, F& uuid_fn)
+{
+  std::visit([&](const auto& obj) {
+    using T = std::decay_t<decltype(obj)>;
+    
+    if constexpr (std::is_same_v<T, loudspeaker>)
+    {
+      // Generate UUID if not present
+      std::string uuid = obj.uuid.empty() ? uuid_fn() : obj.uuid;
+      
+      res += std::format(
+          R"_({}<SPEAKER SPEAKER_PATCH_ID="{}" IO_STATE="normal" CARTESIAN_POSITION="({}, {}, {})" GAIN="{}" DIRECT_OUT_ONLY="0" UUID="{}"/>
+)_",
+          indent, speaker_id++, obj.x, obj.y, obj.z, to_db(obj.gain), uuid);
+    }
+    else if constexpr (std::is_same_v<T, group>)
+    {
+      // Generate UUID if not present
+      std::string uuid = obj.uuid.empty() ? uuid_fn() : obj.uuid;
+      
+      res += std::format(
+          R"_({}<SPEAKER_GROUP SPEAKER_GROUP_NAME="{}" CARTESIAN_POSITION="({}, {}, {})" UUID="{}">
+)_",
+          indent, obj.name, obj.x, obj.y, obj.z, uuid);
+      
+      for(const auto& child : obj.children)
+      {
+        write_node_v4(res, child, indent + "  ", speaker_id, uuid_fn);
+      }
+      
+      res += std::format("{}  </SPEAKER_GROUP>\n", indent);
+    }
+  }, n);
+}
+
+std::string to_string_v4(const file& f)
+{
+  std::string res;
+  
+  // Generate root UUID
+  auto uuid_gen = []() { return generate_uuid(); };
+  std::string root_uuid = uuid_gen();
+  
+  res.append(std::format(
+      R"_(<?xml version="1.0" encoding="UTF-8"?>
+
+<SPEAKER_SETUP SPEAKER_SETUP_VERSION="4.0.0" SPAT_MODE="{}" DIFFUSION="{}" GENERAL_MUTE="{}" UUID="{}">
+)_",
+      f.mode.empty() ? "Cube" : f.mode, f.diffusion, f.general_mute, root_uuid));
+
+  // Main speaker group
+  res += std::format(
+      R"_(  <SPEAKER_GROUP SPEAKER_GROUP_NAME="MAIN_SPEAKER_GROUP_NAME" CARTESIAN_POSITION="(0, 0, 0)" UUID="{}">
+)_",
+      uuid_gen());
+
+  int speaker_id = 1;
+  for(const auto& child : f.children)
+  {
+    write_node_v4(res, child, "    ", speaker_id, uuid_gen);
+  }
+
+  res.append(R"_(  </SPEAKER_GROUP>
+</SPEAKER_SETUP>
+)_");
+  
   return res;
 }
 }

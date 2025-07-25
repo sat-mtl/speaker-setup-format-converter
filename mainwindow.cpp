@@ -73,7 +73,8 @@ void MainWindow::setupUi()
   buttonLayout->addWidget(new QLabel("Output Format:"));
   m_outputFormatCombo = new QComboBox();
   m_outputFormatCombo->addItems(
-      {"EASE", "IEM", "Spat (IRCAM)", "CSV", "SpatGRIS", "4D Sound", "Spat Revolution"});
+      {"EASE", "IEM", "Spat (IRCAM)", "CSV", "SpatGRIS (v3)", "SpatGRIS (v4)",
+       "4D Sound", "Spat Revolution"});
   m_outputFormatCombo->setCurrentIndex(0);
   buttonLayout->addWidget(m_outputFormatCombo);
   m_convertButton = new QPushButton("Convert");
@@ -182,7 +183,7 @@ void MainWindow::onSaveFile()
   {
     hint = "speakers.csv";
   }
-  else if(outputFormat == "SpatGRIS")
+  else if(outputFormat.starts_with("SpatGRIS"))
   {
     hint = "speakers.xml";
   }
@@ -262,7 +263,7 @@ void MainWindow::onConvert()
         convert(*parsed, *unified_config);
       }
     }
-    else if(inputFormat == "SpatGRIS")
+    else if(inputFormat.starts_with("SpatGRIS"))
     {
       if(auto parsed = spatparse::spatgris::parse(m_inputContent))
       {
@@ -319,11 +320,17 @@ void MainWindow::onConvert()
         convert(*unified_config, f);
         output_string = to_string(f);
       }
-      else if(outputFormat == "SpatGRIS")
+      else if(outputFormat == "SpatGRIS (v3)")
       {
         spatparse::spatgris::file f;
         convert(*unified_config, f);
-        output_string = to_string(f); // This uses your existing target format
+        output_string = to_string(f);
+      }
+      else if(outputFormat == "SpatGRIS (v4)")
+      {
+        spatparse::spatgris::file f;
+        convert(*unified_config, f);
+        output_string = to_string_v4(f);
       }
       else if(outputFormat == "4D Sound")
       {
