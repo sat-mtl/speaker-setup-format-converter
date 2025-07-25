@@ -264,7 +264,7 @@ void MainWindow::onConvert()
     }
     else if(inputFormat == "SpatGRIS")
     {
-      if(auto parsed = spatparse::speakerview::parse(m_inputContent))
+      if(auto parsed = spatparse::spatgris::parse(m_inputContent))
       {
         unified_config.emplace();
         convert(*parsed, *unified_config);
@@ -321,7 +321,7 @@ void MainWindow::onConvert()
       }
       else if(outputFormat == "SpatGRIS")
       {
-        spatparse::speakerview::file f;
+        spatparse::spatgris::file f;
         convert(*unified_config, f);
         output_string = to_string(f); // This uses your existing target format
       }

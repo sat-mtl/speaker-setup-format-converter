@@ -31,36 +31,36 @@ int main()
   {
     auto in
         = spatparse::spat::parse(std::string_view(sample_rtf, std::ssize(sample_rtf)));
-    auto converted = spatparse::to_speakerview(*in);
-    spatparse::speakerview::fixup(converted);
-    auto string = spatparse::speakerview::to_string(converted);
+    auto converted = spatparse::convert<spatparse::spatgris::file>(*in);
+    spatparse::spatgris::fixup(converted);
+    auto string = spatparse::spatgris::to_string(converted);
     std::cerr << string << std::endl;
   }
 
   {
     auto in
         = spatparse::csv::parse(std::string_view(sample_csv, std::ssize(sample_csv)));
-    auto converted = spatparse::to_speakerview(*in);
-    spatparse::speakerview::fixup(converted);
-    auto string = spatparse::speakerview::to_string(converted);
+    auto converted = spatparse::convert<spatparse::spatgris::file>(*in);
+    spatparse::spatgris::fixup(converted);
+    auto string = spatparse::spatgris::to_string(converted);
     std::cerr << string << std::endl;
   }
 
   {
     auto in = spatparse::aiira::parse(
         std::string_view(sample_aiira, std::ssize(sample_aiira)));
-    auto converted = spatparse::to_speakerview(*in);
-    spatparse::speakerview::fixup(converted);
-    auto string = spatparse::speakerview::to_string(converted);
+    auto converted = spatparse::convert<spatparse::spatgris::file>(*in);
+    spatparse::spatgris::fixup(converted);
+    auto string = spatparse::spatgris::to_string(converted);
     std::cerr << string << std::endl;
   }
 
   {
     auto in
         = spatparse::ease::parse(std::string_view(sample_ease, std::ssize(sample_ease)));
-    auto converted = spatparse::to_speakerview(*in);
-    spatparse::speakerview::fixup(converted);
-    auto string = spatparse::speakerview::to_string(converted);
+    auto converted = spatparse::convert<spatparse::spatgris::file>(*in);
+    spatparse::spatgris::fixup(converted);
+    auto string = spatparse::spatgris::to_string(converted);
     std::cerr << string << std::endl;
   }
 }

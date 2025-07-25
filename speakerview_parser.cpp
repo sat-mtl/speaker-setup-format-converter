@@ -2,12 +2,14 @@
 
 #include "utils.hpp"
 
+#include <boost/type_traits/copy_cv.hpp>
+
 #include <pugixml.hpp>
 
 #include <charconv>
 #include <format>
 #include <iostream>
-namespace spatparse::speakerview
+namespace spatparse::spatgris
 {
 
 // Helper function to parse CARTESIAN_POSITION="(x, y, z)"
@@ -45,9 +47,9 @@ parse_cartesian_position(const std::string& pos_str, double& x, double& y, doubl
 }
 
 // Parse speakers from v4 format (recursive to handle groups)
-static void parse_v4_speakers(pugi::xml_node node, std::vector<loudspeaker>& speakers)
+static void parse_v4_speakers(pugi::xml_node root_node, std::vector<node>& speakers)
 {
-  for(pugi::xml_node child : node.children())
+  for(pugi::xml_node child : root_node.children())
   {
     if(std::string_view(child.name()) == "SPEAKER")
     {
@@ -88,7 +90,80 @@ static void parse_v4_speakers(pugi::xml_node node, std::vector<loudspeaker>& spe
     }
   }
 }
-std::optional<spatparse::speakerview::file> parse(std::string_view input)
+
+static void parse_v3_speakers(pugi::xml_node root_node, std::vector<node>& speakers)
+{
+  // Parse v3 format (original implementation)
+  for(pugi::xml_node speaker_node : root_node.children())
+  {
+    const std::string_view state = speaker_node.attribute("STATE").as_string("normal");
+    if(state != "normal")
+    {
+      continue;
+    }
+
+    pugi::xml_node pos_node = speaker_node.child("POSITION");
+    if(!pos_node)
+    {
+      std::cerr << "Warning: Speaker '" << speaker_node.name()
+                << "' is missing a 'POSITION' node. Skipping." << std::endl;
+      continue;
+    }
+
+    spatparse::spatgris::loudspeaker current_speaker;
+    current_speaker.name = speaker_node.name();
+
+    current_speaker.x = pos_node.attribute("X").as_double();
+    current_speaker.y = pos_node.attribute("Y").as_double();
+    current_speaker.z = pos_node.attribute("Z").as_double();
+
+    double gain_db = speaker_node.attribute("GAIN").as_double(0.0);
+    current_speaker.gain = from_db(gain_db);
+
+    speakers.push_back(current_speaker);
+  }
+}
+
+template <typename T>
+struct recurse_all_speakers
+{
+  using loudspeaker_t = boost::copy_cv_t<loudspeaker, T>;
+  using group_t = boost::copy_cv_t<group, T>;
+  using node_t = boost::copy_cv_t<node, T>;
+
+  std::vector<loudspeaker_t*>& ret;
+
+  void operator()(loudspeaker_t& l) { ret.push_back(&l); }
+  void operator()(group_t& l)
+  {
+    for(auto& n : l.children)
+      std::visit(*this, n);
+  }
+  void operator()(node_t& n) { std::visit(*this, n); }
+};
+
+template <typename F>
+static auto do_all_speakers(F& f)
+{
+  using loudspeaker_t = boost::copy_cv_t<loudspeaker, F>;
+  std::vector<loudspeaker_t*> ret;
+
+  for(auto& node : f.children)
+    recurse_all_speakers<F>{ret}(node);
+
+  return ret;
+}
+
+std::vector<loudspeaker*> all_speakers(file& f)
+{
+  return do_all_speakers(f);
+}
+std::vector<const loudspeaker*> all_speakers(const file& f)
+{
+  return do_all_speakers(f);
+}
+
+std::optional<spatparse::spatgris::file> parse(std::string_view input)
 {
   pugi::xml_document doc;
 
@@ -107,7 +182,7 @@ std::optional<spatparse::speakerview::file> parse(std::string_view input)
     return std::nullopt;
   }
 
-  spatparse::speakerview::file output_file;
+  spatparse::spatgris::file output_file;
 
   // Check if this is v4 format by looking for SPEAKER_SETUP_VERSION attribute
   bool is_v4 = root_node.attribute("SPEAKER_SETUP_VERSION").as_string()[0] != '\0';
@@ -115,48 +190,23 @@ std::optional<spatparse::speakerview::file> parse(std::string_view input)
   if(is_v4)
   {
     // Parse v4 format
-    parse_v4_speakers(root_node, output_file.speakers);
+    parse_v4_speakers(root_node, output_file.children);
   }
   else
   {
-    // Parse v3 format (original implementation)
-    for(pugi::xml_node speaker_node : root_node.children())
-    {
-      const std::string_view state = speaker_node.attribute("STATE").as_string("normal");
-      if(state != "normal")
-      {
-        continue;
-      }
-
-      pugi::xml_node pos_node = speaker_node.child("POSITION");
-      if(!pos_node)
-      {
-        std::cerr << "Warning: Speaker '" << speaker_node.name()
-                  << "' is missing a 'POSITION' node. Skipping." << std::endl;
-        continue;
-      }
-
-      spatparse::speakerview::loudspeaker current_speaker;
-      current_speaker.name = speaker_node.name();
-
-      current_speaker.x = pos_node.attribute("X").as_double();
-      current_speaker.y = pos_node.attribute("Y").as_double();
-      current_speaker.z = pos_node.attribute("Z").as_double();
-
-      double gain_db = speaker_node.attribute("GAIN").as_double(0.0);
-      current_speaker.gain = from_db(gain_db);
-
-      output_file.speakers.push_back(current_speaker);
-    }
+    parse_v3_speakers(root_node, output_file.children);
   }
 
   return output_file;
 }
+
 void fixup(file& f, fixup_options opts)
 {
-  if(f.speakers.empty())
+  auto speakers = all_speakers(f);
+  if(speakers.empty())
     return;
-  auto s0 = f.speakers[0];
+
+  auto s0 = *speakers[0];
 
   // Accumulators to compute the centroid
   double sx{}, sy{}, sz{};
@@ -166,8 +216,9 @@ void fixup(file& f, fixup_options opts)
 
   // 1. Basic cleanup
   int missing_idx{1};
-  for(auto& sp : f.speakers)
+  for(auto& sp_p : speakers)
   {
+    auto& sp = *sp_p;
     if(sp.name.empty())
       sp.name = std::format("missing_{}", missing_idx++);
 
@@ -203,13 +254,14 @@ void fixup(file& f, fixup_options opts)
   // 2. Fixups
   if(opts.recenter)
   {
-    const auto n = f.speakers.size();
+    const auto n = speakers.size();
     sx /= n;
     sy /= n;
     sz /= n;
 
-    for(auto& sp : f.speakers)
+    for(auto& sp_p : speakers)
     {
+      auto& sp = *sp_p;
       sp.x -= sx;
       sp.y -= sy;
       sp.z -= sz;
@@ -226,16 +278,17 @@ void fixup(file& f, fixup_options opts)
   if(opts.normalize)
   {
     if(max_x > min_x)
-      for(auto& sp : f.speakers)
-        sp.x *= *opts.normalize / (max_x - min_x);
+      for(auto& sp : speakers)
+        sp->x *= *opts.normalize / (max_x - min_x);
     if(max_y > min_y)
-      for(auto& sp : f.speakers)
-        sp.y *= *opts.normalize / (max_y - min_y);
+      for(auto& sp : speakers)
+        sp->y *= *opts.normalize / (max_y - min_y);
     if(max_z > min_z)
-      for(auto& sp : f.speakers)
-        sp.z *= *opts.normalize / (max_z - min_z);
+      for(auto& sp : speakers)
+        sp->z *= *opts.normalize / (max_z - min_z);
   }
 }
+
 std::string to_string(const file& f)
 {
   std::string res;
@@ -244,8 +297,9 @@ std::string to_string(const file& f)
 )_");
 
   int i = 1;
-  for(auto& sp : f.speakers)
+  for(auto* sp_p : all_speakers(f))
   {
+    auto& sp = *sp_p;
     res += std::format(
         R"_(  <SPEAKER_{} STATE="normal" GAIN="0.0" DIRECT_OUT_ONLY="0">
 )_",

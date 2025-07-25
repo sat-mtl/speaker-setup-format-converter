@@ -1,5 +1,6 @@
 #include "converter.hpp"
 
+#include "speakerview_parser.hpp"
 #include "utils.hpp"
 
 #include <cmath>
@@ -126,17 +127,19 @@ void convert(
 }
 
 void convert(
-    const spatparse::speakerview::file& input,
+    const spatparse::spatgris::file& input,
     spatparse::unified::loudspeaker_configuration& output)
 {
-  output.name = "SpeakerView Layout";
-  output.description = "A layout from SpeakerView";
+  output.name = "SpatGRIS Layout";
+  output.description = "A layout from SpatGRIS";
   output.length_unit = "m"; // Unit is not specified, assume meters
   output.loudspeakers.clear();
-  output.loudspeakers.reserve(input.speakers.size());
+  const auto& speakers = spatparse::spatgris::all_speakers(input);
+  output.loudspeakers.reserve(speakers.size());
 
-  for(const auto& spk_in : input.speakers)
+  for(const auto* spk_in_p : speakers)
   {
+    auto& spk_in = *spk_in_p;
     spatparse::unified::loudspeaker spk_out;
     spk_out.name = spk_in.name;
     spk_out.x = spk_in.x;
@@ -279,110 +282,24 @@ void convert(
 
 void convert(
     const spatparse::unified::loudspeaker_configuration& input,
-    spatparse::speakerview::file& output)
+    spatparse::spatgris::file& output)
 {
-  output.speakers.clear();
-  output.speakers.reserve(input.loudspeakers.size());
+  output.children.clear();
+  output.children.reserve(input.loudspeakers.size());
 
   for(const auto& spk_in : input.loudspeakers)
   {
     if(!spk_in.is_enabled)
       continue;
 
-    spatparse::speakerview::loudspeaker spk_out;
+    spatparse::spatgris::loudspeaker spk_out;
     spk_out.name = spk_in.name;
     spk_out.x = spk_in.x;
     spk_out.y = spk_in.y;
     spk_out.z = spk_in.z;
     spk_out.gain = from_db(spk_in.gain_db);
-    output.speakers.push_back(spk_out);
+    output.children.push_back(std::move(spk_out));
   }
-}
-
-speakerview::file to_speakerview(ease::file in)
-{
-  speakerview::file res;
-  for(const auto& sp_in : in.loudspeakers)
-  {
-    speakerview::loudspeaker sp_out;
-    sp_out.name = sp_in.label;
-    sp_out.gain = 1.0;
-    sp_out.x = sp_in.x;
-    sp_out.y = sp_in.y;
-    sp_out.z = sp_in.z;
-    res.speakers.push_back(sp_out);
-  }
-  return res;
-}
-
-speakerview::file to_speakerview(spat::file in)
-{
-  speakerview::file res;
-  for(const auto& sp_in : in.loudspeakers)
-  {
-    speakerview::loudspeaker sp_out;
-    sp_out.name = sp_in.name;
-    sp_out.gain = sp_in.gain_db;
-    // Convert from Spat5 azimuth to standard azimuth before cartesian conversion
-    double standard_azimuth = azimuth_from_spat5(sp_in.azimuth);
-    std::tie(sp_out.x, sp_out.y, sp_out.z)
-        = aed_to_cartesian(standard_azimuth, sp_in.elevation, sp_in.distance);
-    res.speakers.push_back(sp_out);
-  }
-  return res;
-}
-
-speakerview::file to_speakerview(aiira::file in)
-{
-  speakerview::file res;
-  int i = 1;
-  for(const auto& sp_in : in.layout.loudspeakers)
-  {
-    speakerview::loudspeaker sp_out;
-    sp_out.name = std::format("{}", i);
-    sp_out.gain = sp_in.gain;
-    // Convert from IEM AIIRAD azimuth to standard azimuth before cartesian conversion
-    double standard_azimuth = azimuth_from_iem_aiirad(sp_in.azimuth);
-    std::tie(sp_out.x, sp_out.y, sp_out.z)
-        = aed_to_cartesian(standard_azimuth, sp_in.elevation, sp_in.radius);
-    res.speakers.push_back(sp_out);
-    i++;
-  }
-  return res;
-}
-
-speakerview::file to_speakerview(csv::file in)
-{
-  speakerview::file res;
-  if(in.speakers.empty())
-    return res;
-  if(in.speakers[0].position.index() == 0) // cartesian
-  {
-    for(const auto& sp_in : in.speakers)
-    {
-      speakerview::loudspeaker sp_out;
-      sp_out.name = sp_in.name;
-      sp_out.gain = 1.0;
-      auto pos = std::get<csv::xyz_position>(in.speakers[0].position);
-      sp_out.x = pos.x;
-      sp_out.y = pos.y;
-      sp_out.z = pos.z;
-      res.speakers.push_back(sp_out);
-    }
-  }
-  else if(in.speakers[0].position.index() == 1) // aed
-  {
-    for(const auto& sp_in : in.speakers)
-    {
-      speakerview::loudspeaker sp_out;
-      sp_out.name = sp_in.name;
-      sp_out.gain = 1.0;
-      auto pos = std::get<csv::aed_position>(in.speakers[0].position);
-      std::tie(sp_out.x, sp_out.y, sp_out.z) = aed_to_cartesian(pos.a, pos.e, pos.d);
-      res.speakers.push_back(sp_out);
-    }
-  }
-  return res;
 }
 
 void convert(

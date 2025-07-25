@@ -22,8 +22,9 @@ struct cli_options
   bool recenter{};
 };
 
-static const std::set<std::string> supported_formats{"xld",        "ease", "csv",
-                                                     "spat_ircam", "iem",  "spatgris", "4dsound", "spat_revolution"};
+static const std::set<std::string> supported_formats{
+    "xld",      "ease",        "csv",         "spat_ircam", "iem",
+    "spatgris", "spatgris_v3", "spatgris_v4", "4dsound",    "spat_revolution"};
 
 bool process(const cli_options& opts)
 {
@@ -47,7 +48,7 @@ bool process(const cli_options& opts)
   std::string bytes(size, '\0');
   in_file.read(&bytes[0], size);
 
-  spatparse::speakerview::fixup_options out_opts{
+  spatparse::spatgris::fixup_options out_opts{
       .normalize = opts.normalize, .recenter = opts.recenter};
 
   // 1. Parse input into the generic format
@@ -72,9 +73,9 @@ bool process(const cli_options& opts)
     if(auto in = spatparse::aiira::parse(bytes))
       spatparse::convert(*in, parsed);
   }
-  else if(opts.in_format == "spatgris")
+  else if(opts.in_format.starts_with("spatgris"))
   {
-    if(auto in = spatparse::speakerview::parse(bytes))
+    if(auto in = spatparse::spatgris::parse(bytes))
       spatparse::convert(*in, parsed);
   }
   else if(opts.in_format == "4dsound")
@@ -118,12 +119,19 @@ bool process(const cli_options& opts)
     spatparse::convert(parsed, res);
     converted_output = spatparse::aiira::to_string(res);
   }
-  else if(opts.out_format == "spatgris")
+  else if(opts.out_format == "spatgris" || opts.out_format == "spatgris_v3")
   {
-    spatparse::speakerview::file res;
+    spatparse::spatgris::file res;
     spatparse::convert(parsed, res);
-    spatparse::speakerview::fixup(res, out_opts);
-    converted_output = spatparse::speakerview::to_string(res);
+    spatparse::spatgris::fixup(res, out_opts);
+    converted_output = spatparse::spatgris::to_string(res);
+  }
+  else if(opts.out_format == "spatgris_v4")
+  {
+    spatparse::spatgris::file res;
+    spatparse::convert(parsed, res);
+    spatparse::spatgris::fixup(res, out_opts);
+    converted_output = spatparse::spatgris::to_string_v4(res);
   }
   else if(opts.out_format == "4dsound")
   {
