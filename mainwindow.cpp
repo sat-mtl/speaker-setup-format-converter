@@ -119,7 +119,8 @@ void MainWindow::setupUi()
 void MainWindow::onLoadFile()
 {
   QString filter
-      = "All Supported (*.xld *.ease *.json *.rtf *.csv *.xml);;EASE Files (*.xld "
+      = "All Supported (*.xld *.ease *.json *.rtf *.csv *.xml *.ioconfig);;EASE Files "
+        "(*.xld "
         "*.ease);;AIIRA Files (*.json);;SPAT Files (*.rtf);;CSV Files "
         "(*.csv);;SpeakerView Files (*.xml);;4D Sound Files (*.xml);;Spat Revolution "
         "Files (*.ioconfig);;All Files (*)";
