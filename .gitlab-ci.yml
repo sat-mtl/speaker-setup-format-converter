@@ -25,14 +25,22 @@ build:linux:
   tags:
     - gitlab-org
   before_script:
-    - apt update && DEBIAN_FRONTEND=noninteractive apt -y install ninja-build cmake libboost-dev build-essential git clang-19 g++-14 curl libopengl-dev libglx-dev libgles-dev libdbus-1-dev libxcb*dev libxkb*dev libglib2.0-dev
+    # Install required packages including updated tools
+    - apt update && DEBIAN_FRONTEND=noninteractive apt -y install ninja-build cmake libboost-dev build-essential git clang-19 g++-14 curl libopengl-dev libglx-dev libgles-dev libdbus-1-dev libxcb*dev libxkb*dev libglib2.0-dev wget
+    # Download OSSIA SDK
+    - curl -L -O "https://github.com/ossia/score/raw/master/tools/fetch-sdk.sh"
+    - chmod +x fetch-sdk.sh
+    - ./fetch-sdk.sh
+    # Install Qt
     - curl -LsSf https://astral.sh/uv/install.sh | sh
     - source $HOME/.local/bin/env
     - uv venv && uv pip install aqtinstall
     - uv run aqt install-qt linux desktop 6.9.1
   script:
     - mkdir -p build
-    - CC=clang-19 CXX=clang++-19 cmake -S $PWD -B build -GNinja -DCMAKE_PREFIX_PATH=$PWD/6.9.1/gcc_64
+    # Use OSSIA SDK's clang compiler
+    - export PATH=/opt/ossia-sdk-x86_64/llvm/bin:$PATH
+    - CC=/opt/ossia-sdk-x86_64/llvm/bin/clang CXX=/opt/ossia-sdk-x86_64/llvm/bin/clang++ cmake -S $PWD -B build -GNinja -DCMAKE_PREFIX_PATH="$PWD/6.9.1/gcc_64;/opt/ossia-sdk-x86_64"
     - cmake --build build
   artifacts:
     expire_in: 2 hrs
@@ -44,10 +52,18 @@ build:windows:
   extends:
     - .shared_windows_runners
   before_script:
-    - choco install -y cmake
+    # Install required tools with latest versions
+    - choco install -y cmake --version=3.31.3
+    - choco install -y ninja
     - choco install -y boost-msvc-14.3
+    - choco install -y msys2
+    # Download OSSIA SDK
+    - curl -L -O "https://github.com/ossia/score/raw/master/tools/fetch-sdk.sh"
+    - bash fetch-sdk.sh
   script:
-    - cmake -S . -B build
+    # Use OSSIA SDK's clang compiler for Windows
+    - $env:PATH = "C:\ossia-sdk-x86_64\llvm\bin;$env:PATH"
+    - cmake -S . -B build -GNinja -DCMAKE_C_COMPILER="C:\ossia-sdk-x86_64\llvm\bin\clang.exe" -DCMAKE_CXX_COMPILER="C:\ossia-sdk-x86_64\llvm\bin\clang++.exe" -DCMAKE_PREFIX_PATH="C:\ossia-sdk-x86_64"
     - cmake --build build
   artifacts:
     expire_in: 2 hrs
@@ -60,11 +76,19 @@ build:mac:
     - .macos_saas_runners
   
   before_script:
+    # Update and install required tools
     - brew update
-    - brew install cmake boost
+    - brew install cmake ninja boost
+    # Ensure latest Xcode is selected
+    - sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+    # Download OSSIA SDK
+    - curl -L -O "https://github.com/ossia/score/raw/master/tools/fetch-sdk.sh"
+    - chmod +x fetch-sdk.sh
+    - ./fetch-sdk.sh
   script:
     - mkdir -p build
-    - cmake -S $PWD -B build
+    # OSSIA SDK on macOS uses system compiler, just add SDK to prefix path
+    - cmake -S $PWD -B build -GNinja -DCMAKE_PREFIX_PATH="/opt/ossia-sdk-aarch64"
     - cmake --build build
   artifacts:
     expire_in: 2 hrs
@@ -77,7 +101,8 @@ test:linux:
   tags:
     - gitlab-org
   script:
-    - ctest -V
+    - cd build
+    - ctest -V --output-on-failure
   dependencies:
     - build:linux
 
@@ -86,7 +111,8 @@ test:windows:
   extends:
     - .shared_windows_runners
   script:
-    - ctest -V
+    - cd build
+    - ctest -V --output-on-failure
   dependencies:
     - build:windows
 
@@ -95,7 +121,8 @@ test:mac:
   extends:
     - .macos_saas_runners
   script:
-    - ctest -V
+    - cd build
+    - ctest -V --output-on-failure
   dependencies:
     - build:mac
 
