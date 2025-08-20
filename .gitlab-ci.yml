@@ -55,7 +55,6 @@ build:windows:
     # Install required tools with latest versions
     - choco install -y cmake --version=3.31.3
     - choco install -y ninja
-    - choco install -y msys2
     # Download OSSIA SDK
     - Invoke-WebRequest -Uri "https://github.com/ossia/score/raw/master/tools/fetch-sdk.sh" -OutFile "fetch-sdk.sh"
     - bash fetch-sdk.sh

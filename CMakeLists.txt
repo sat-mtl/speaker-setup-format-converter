@@ -91,6 +91,24 @@ add_library(spat-format-converter
   spat_revolution_model.hpp
 )
 
+target_compile_definitions(spat-format-converter
+  PUBLIC
+    BOOST_ALL_NO_LIB=1
+    BOOST_NO_RTTI=1
+    BOOST_MATH_DISABLE_FLOAT128=1
+)
+if(BOOST_ROOT)
+  target_include_directories(spat-format-converter
+    PUBLIC
+      "${BOOST_ROOT}"
+  )
+elseif(Boost_INCLUDE_DIR)
+  target_include_directories(spat-format-converter
+    PUBLIC
+      "${Boost_INCLUDE_DIR}"
+  )
+endif()
+
 target_link_libraries(spat-format-converter
   PRIVATE
     ctre::ctre
