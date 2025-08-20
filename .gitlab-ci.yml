@@ -52,10 +52,9 @@ build:windows:
     # Install required tools with latest versions
     - choco install -y cmake --version=3.31.3
     - choco install -y ninja
-    - choco install -y boost-msvc-14.3
     - choco install -y msys2
     # Download OSSIA SDK
-    - curl -L -O "https://github.com/ossia/score/raw/master/tools/fetch-sdk.sh"
+    - Invoke-WebRequest -Uri "https://github.com/ossia/score/raw/master/tools/fetch-sdk.sh" -OutFile "fetch-sdk.sh"
     - bash fetch-sdk.sh
   script:
     # Use OSSIA SDK's clang compiler for Windows
