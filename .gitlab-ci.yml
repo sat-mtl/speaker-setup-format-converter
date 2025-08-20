@@ -40,7 +40,7 @@ build:linux:
     - mkdir -p build
     # Use OSSIA SDK's clang compiler
     - export PATH=/opt/ossia-sdk-x86_64/llvm/bin:$PATH
-    - CC=/opt/ossia-sdk-x86_64/llvm/bin/clang CXX=/opt/ossia-sdk-x86_64/llvm/bin/clang++ cmake -S $PWD -B build -GNinja -DCMAKE_PREFIX_PATH="/opt/ossia-sdk-x86_64;/opt/ossia-sdk-x86_64/qt6-static;/opt/ossia-sdk-x86_64/qt6-static/lib;" -DBOOST_ROOT="/opt/boost_1_88_0"
+    - CC=/opt/ossia-sdk-x86_64/llvm/bin/clang CXX=/opt/ossia-sdk-x86_64/llvm/bin/clang++ cmake -S $PWD -B build -GNinja -DCMAKE_PREFIX_PATH="/opt/ossia-sdk-x86_64;/opt/ossia-sdk-x86_64/qt6-static;/opt/ossia-sdk-x86_64/qt6-static/lib;" -DBOOST_ROOT="/opt/boost_1_88_0" -DBUILD_TESTING=0
     - cmake --build build
   artifacts:
     expire_in: 2 hrs
@@ -55,6 +55,7 @@ build:windows:
     # Install required tools with latest versions
     - choco install -y cmake --version=3.31.3
     - choco install -y ninja
+    - choco install -y msys2
     # Download OSSIA SDK
     - Invoke-WebRequest -Uri "https://github.com/ossia/score/raw/master/tools/fetch-sdk.sh" -OutFile "fetch-sdk.sh"
     - bash fetch-sdk.sh
@@ -64,7 +65,7 @@ build:windows:
   script:
     # Use OSSIA SDK's clang compiler for Windows
     - $env:PATH = "C:\ossia-sdk-x86_64\llvm\bin;$env:PATH"
-    - cmake -S . -B build -GNinja -DCMAKE_C_COMPILER="C:/ossia-sdk-x86_64/llvm/bin/clang.exe" -DCMAKE_CXX_COMPILER="C:/ossia-sdk-x86_64/llvm/bin/clang++.exe" -DCMAKE_PREFIX_PATH="C:/ossia-sdk-x86_64;C:/ossia-sdk-x86_64/qt6-static;C:/ossia-sdk-x86_64/qt6-static/lib" -DBOOST_ROOT="C:/boost_1_88_0"
+    - cmake -S . -B build -GNinja -DCMAKE_C_COMPILER="C:/ossia-sdk-x86_64/llvm/bin/clang.exe" -DCMAKE_CXX_COMPILER="C:/ossia-sdk-x86_64/llvm/bin/clang++.exe" -DCMAKE_PREFIX_PATH="C:/ossia-sdk-x86_64;C:/ossia-sdk-x86_64/qt6-static;C:/ossia-sdk-x86_64/qt6-static/lib" -DBOOST_ROOT="C:/boost_1_88_0" -DBUILD_TESTING=0
     - cmake --build build
   artifacts:
     expire_in: 2 hrs
@@ -92,7 +93,7 @@ build:mac:
   script:
     - mkdir -p build
     # OSSIA SDK on macOS uses system compiler, just add SDK to prefix path
-    - cmake -S $PWD -B build -GNinja -DCMAKE_PREFIX_PATH="/opt/ossia-sdk-aarch64" -DBOOST_ROOT="/opt/boost_1_88_0"
+    - cmake -S $PWD -B build -GNinja -DCMAKE_PREFIX_PATH="/opt/ossia-sdk-aarch64" -DBOOST_ROOT="/opt/boost_1_88_0" -DBUILD_TESTING=0
     - cmake --build build
   artifacts:
     expire_in: 2 hrs
