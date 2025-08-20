@@ -173,7 +173,8 @@ add_executable(spatparsecli
 target_link_libraries(spatparsecli PRIVATE spat-format-converter args)
 
 # Qt GUI Application
-find_package(Qt6 COMPONENTS Core Widgets QUIET)
+set(CMAKE_FIND_DEBUG_MODE 1)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets QUIET)
 if(Qt6_FOUND)
   set(CMAKE_AUTOMOC ON)
 
