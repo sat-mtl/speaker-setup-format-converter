@@ -173,7 +173,6 @@ add_executable(spatparsecli
 target_link_libraries(spatparsecli PRIVATE spat-format-converter args)
 
 # Qt GUI Application
-set(CMAKE_FIND_DEBUG_MODE 1)
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets QUIET)
 if(Qt6_FOUND)
   set(CMAKE_AUTOMOC ON)
@@ -193,6 +192,13 @@ if(Qt6_FOUND)
   set_target_properties(spatconverter-gui PROPERTIES
     WIN32_EXECUTABLE TRUE
     MACOSX_BUNDLE TRUE
+  )
+
+  qt_add_resources(spatconverter-gui "fonts"
+    PREFIX "/fonts"
+    FILES 
+      resources/DMSans-VariableFont_opsz,wght.ttf
+      resources/DMSans-Italic-VariableFont_opsz,wght.ttf 
   )
   qt_finalize_project()
 else()

@@ -46,7 +46,7 @@ build:linux:
     - ls /opt/ossia-sdk-x86_64/qt6-static/lib/cmake
     - export OSSIA_SDK=/opt/ossia-sdk-x86_64
     - export CMAKE_PREFIX_PATH="${OSSIA_SDK};${OSSIA_SDK}/qt6-static;${OSSIA_SDK}/qt6-static/lib;${OSSIA_SDK}/qt6-static/lib/cmake;${OSSIA_SDK}/llvm;${OSSIA_SDK}/fftw;${OSSIA_SDK}/zlib;${OSSIA_SDK}/openssl;${OSSIA_SDK}/freetype;${OSSIA_SDK}/harfbuzz;${OSSIA_SDK}/pipewire;${OSSIA_SDK}/sysroot;${OSSIA_SDK}/sysroot/lib;${OSSIA_SDK}/sysroot/lib/cmake;${OSSIA_SDK}/sysroot/lib/cmake/freetype;${OSSIA_SDK}/sysroot/lib/cmake/harfbuzz;${OSSIA_SDK}/sysroot/lib/cmake/liblzma;${OSSIA_SDK}/sysroot/lib/cmake/Snappy;${OSSIA_SDK}/sysroot/lib/cmake/zstd;${OSSIA_SDK}/qt6-static/lib64;${OSSIA_SDK}/llvm-libs/lib64;${OSSIA_SDK}/zlib/lib64;${OSSIA_SDK}/openssl/lib64;${OSSIA_SDK}/freetype/lib64;${OSSIA_SDK}/harfbuzz/lib64"
-    - CC=/opt/ossia-sdk-x86_64/llvm/bin/clang CXX=/opt/ossia-sdk-x86_64/llvm/bin/clang++ cmake -S $PWD -B build -GNinja -DCMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH" -DBOOST_ROOT="/opt/boost_1_88_0" -DBUILD_TESTING=0 --debug-find-pkg=Qt6Core -DQT_DEBUG_FIND_PACKAGE=ON 
+    - CC=/opt/ossia-sdk-x86_64/llvm/bin/clang CXX=/opt/ossia-sdk-x86_64/llvm/bin/clang++ cmake -S $PWD -B build -GNinja -DCMAKE_PREFIX_PATH="$CMAKE_PREFIX_PATH" -DBOOST_ROOT="/opt/boost_1_88_0" -DBUILD_TESTING=0 
     - cmake --build build
   artifacts:
     expire_in: 2 hrs
