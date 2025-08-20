@@ -26,18 +26,21 @@ build:linux:
     - gitlab-org
   before_script:
     # Install required packages including updated tools
-    - apt update && DEBIAN_FRONTEND=noninteractive apt -y install ninja-build cmake libboost-dev build-essential git clang-19 g++-14 curl libopengl-dev libglx-dev libgles-dev libdbus-1-dev libxcb*dev libxkb*dev libglib2.0-dev wget xz-utils curl
+    - apt update && DEBIAN_FRONTEND=noninteractive apt -y install ninja-build cmake build-essential git clang-19 g++-14 curl libopengl-dev libglx-dev libgles-dev libdbus-1-dev libxcb*dev libxkb*dev libglib2.0-dev wget xz-utils
     # Create sudo alias to bypass sudo requirement
     - alias sudo=
     # Download OSSIA SDK
     - curl -L -O "https://github.com/ossia/score/raw/master/tools/fetch-sdk.sh"
     - chmod +x fetch-sdk.sh
     - ./fetch-sdk.sh
+    # Download and extract Boost
+    - curl -L "https://github.com/ossia/sdk/releases/download/sdk31/boost_1_88_0.tar.gz" -o boost_1_88_0.tar.gz
+    - tar xzf boost_1_88_0.tar.gz -C /opt/
   script:
     - mkdir -p build
     # Use OSSIA SDK's clang compiler
     - export PATH=/opt/ossia-sdk-x86_64/llvm/bin:$PATH
-    - CC=/opt/ossia-sdk-x86_64/llvm/bin/clang CXX=/opt/ossia-sdk-x86_64/llvm/bin/clang++ cmake -S $PWD -B build -GNinja -DCMAKE_PREFIX_PATH="/opt/ossia-sdk-x86_64;/opt/ossia-sdk-x86_64/qt6-static;/opt/ossia-sdk-x86_64/qt6-static/lib;"
+    - CC=/opt/ossia-sdk-x86_64/llvm/bin/clang CXX=/opt/ossia-sdk-x86_64/llvm/bin/clang++ cmake -S $PWD -B build -GNinja -DCMAKE_PREFIX_PATH="/opt/ossia-sdk-x86_64;/opt/ossia-sdk-x86_64/qt6-static;/opt/ossia-sdk-x86_64/qt6-static/lib;" -DBOOST_ROOT="/opt/boost_1_88_0"
     - cmake --build build
   artifacts:
     expire_in: 2 hrs
@@ -56,10 +59,13 @@ build:windows:
     # Download OSSIA SDK
     - Invoke-WebRequest -Uri "https://github.com/ossia/score/raw/master/tools/fetch-sdk.sh" -OutFile "fetch-sdk.sh"
     - bash fetch-sdk.sh
+    # Download and extract Boost
+    - Invoke-WebRequest -Uri "https://github.com/ossia/sdk/releases/download/sdk31/boost_1_88_0.tar.gz" -OutFile "boost_1_88_0.tar.gz"
+    - tar xzf boost_1_88_0.tar.gz -C C:\
   script:
     # Use OSSIA SDK's clang compiler for Windows
     - $env:PATH = "C:\ossia-sdk-x86_64\llvm\bin;$env:PATH"
-    - cmake -S . -B build -GNinja -DCMAKE_C_COMPILER="C:/ossia-sdk-x86_64/llvm/bin/clang.exe" -DCMAKE_CXX_COMPILER="C:/ossia-sdk-x86_64/llvm/bin/clang++.exe" -DCMAKE_PREFIX_PATH="C:/ossia-sdk-x86_64;C:/ossia-sdk-x86_64/qt6-static;C:/ossia-sdk-x86_64/qt6-static/lib"
+    - cmake -S . -B build -GNinja -DCMAKE_C_COMPILER="C:/ossia-sdk-x86_64/llvm/bin/clang.exe" -DCMAKE_CXX_COMPILER="C:/ossia-sdk-x86_64/llvm/bin/clang++.exe" -DCMAKE_PREFIX_PATH="C:/ossia-sdk-x86_64;C:/ossia-sdk-x86_64/qt6-static;C:/ossia-sdk-x86_64/qt6-static/lib" -DBOOST_ROOT="C:/boost_1_88_0"
     - cmake --build build
   artifacts:
     expire_in: 2 hrs
@@ -74,17 +80,20 @@ build:mac:
   before_script:
     # Update and install required tools
     - brew update
-    - brew install cmake ninja boost
+    - brew install cmake ninja
     # Ensure latest Xcode is selected
     - sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
     # Download OSSIA SDK
     - curl -L -O "https://github.com/ossia/score/raw/master/tools/fetch-sdk.sh"
     - chmod +x fetch-sdk.sh
     - ./fetch-sdk.sh
+    # Download and extract Boost
+    - curl -L "https://github.com/ossia/sdk/releases/download/sdk31/boost_1_88_0.tar.gz" -o boost_1_88_0.tar.gz
+    - tar xzf boost_1_88_0.tar.gz -C /opt/
   script:
     - mkdir -p build
     # OSSIA SDK on macOS uses system compiler, just add SDK to prefix path
-    - cmake -S $PWD -B build -GNinja -DCMAKE_PREFIX_PATH="/opt/ossia-sdk-aarch64"
+    - cmake -S $PWD -B build -GNinja -DCMAKE_PREFIX_PATH="/opt/ossia-sdk-aarch64" -DBOOST_ROOT="/opt/boost_1_88_0"
     - cmake --build build
   artifacts:
     expire_in: 2 hrs
