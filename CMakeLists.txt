@@ -196,6 +196,7 @@ if(Qt6_FOUND)
 
   qt_add_resources(spatconverter-gui "fonts"
     PREFIX "/fonts"
+    BASE resources/
     FILES 
       resources/DMSans-VariableFont_opsz,wght.ttf
       resources/DMSans-Italic-VariableFont_opsz,wght.ttf 
