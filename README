@@ -7,3 +7,4 @@ To use:
  python -m http.server
 
 Plans are being made to get the app accessible as a web app here : https://spatparse.sat.qc.ca
+But is already available here : https://ease-format-parser-b8ebcd.gitlab.io/
