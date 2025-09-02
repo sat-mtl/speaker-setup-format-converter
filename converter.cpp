@@ -158,6 +158,8 @@ void convert(
   }
 
   output.preprocess();
+  if(input.mode == "Dome")
+    output.is_spherical = true;
 }
 
 void convert(
@@ -353,6 +355,8 @@ void convert(
     const spatparse::unified::loudspeaker_configuration& input,
     spatparse::spatgris::file& output)
 {
+  if(input.is_spherical)
+    output.mode = "Dome";
   output.children.clear();
   output.children.reserve(input.loudspeakers.size());
 

@@ -1,6 +1,9 @@
 #pragma once
 
+#include "utils.hpp"
+
 #include <array>
+#include <iostream>
 #include <string>
 #include <vector>
 
@@ -36,6 +39,10 @@ struct loudspeaker_configuration
   std::vector<loudspeaker> loudspeakers;
 
   double normalization_ratio = 1.0;
+
+  // True if we know that this is an arrangement of loudspeakers on the shape of a sphere.
+  // Enables for instance the better Dome algorithm in SpatGRIS.
+  bool is_spherical{};
 
   double compute_normalization_ratio() const noexcept
   {
@@ -75,11 +82,10 @@ struct loudspeaker_configuration
     range_x = std::max(std::abs(min_x), std::abs(max_x));
     range_y = std::max(std::abs(min_y), std::abs(max_y));
     range_z = std::max(std::abs(min_z), std::abs(max_z));
-    fprintf(stderr, "Ayy: %f   %f   %f\n", range_x, range_y, range_z);
     return std::max(std::max(range_x, range_y), range_z);
   }
 
-  void preprocess()
+  void cleanup_small_values()
   {
     for(auto& sp : loudspeakers)
     {
@@ -96,6 +102,37 @@ struct loudspeaker_configuration
       if(std::abs(sp.roll) < 1e-10)
         sp.roll = 0.;
     }
+  }
+
+  void check_spherical(double error_margin = 1e-2)
+  {
+    is_spherical = true;
+    if(loudspeakers.size() < 4)
+    {
+      // There's always a sphere that can go through 3 points
+      return;
+    }
+
+    double a{}, e{}, d{};
+    cartesian_to_spherical(
+        loudspeakers[0].x, loudspeakers[0].y, loudspeakers[0].z, a, e, d);
+    for(auto& spk : loudspeakers)
+    {
+      double a2{}, e2{}, d2{};
+      cartesian_to_spherical(spk.x, spk.y, spk.z, a2, e2, d2);
+
+      if(std::abs(d - d2) > error_margin)
+      {
+        is_spherical = false;
+      }
+    }
+  }
+
+  void preprocess()
+  {
+    cleanup_small_values();
+
+    check_spherical();
 
     if(length_unit == "")
       normalization_ratio = 1.0;

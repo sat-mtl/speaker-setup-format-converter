@@ -294,10 +294,11 @@ void fixup(file& f, fixup_options opts)
 
 std::string to_string(const file& f)
 {
-  std::string res;
-  res.append(R"_(<?xml version="1.0" encoding="UTF-8"?>
-<SPEAKER_SETUP VERSION="3.1.14" SPAT_MODE="Dome" DIFFUSION="0.0" GENERAL_MUTE="0">
-)_");
+  std::string res = std::format(
+      R"_(<?xml version="1.0" encoding="UTF-8"?>
+<SPEAKER_SETUP VERSION="3.1.14" SPAT_MODE="{}" DIFFUSION="{}" GENERAL_MUTE="{}">
+)_",
+      f.mode, f.diffusion, f.general_mute ? 1 : 0);
 
   int i = 1;
   for(auto* sp_p : all_speakers(f))
@@ -395,13 +396,14 @@ std::string to_string_v4(const file& f)
   // Generate root UUID
   auto uuid_gen = []() { return generate_uuid(); };
   std::string root_uuid = uuid_gen();
-  
-  res.append(std::format(
-      R"_(<?xml version="1.0" encoding="UTF-8"?>
+
+  res.append(
+      std::format(
+          R"_(<?xml version="1.0" encoding="UTF-8"?>
 
 <SPEAKER_SETUP SPEAKER_SETUP_VERSION="4.0.0" SPAT_MODE="{}" DIFFUSION="{}" GENERAL_MUTE="{}" UUID="{}">
 )_",
-      f.mode.empty() ? "Cube" : f.mode, f.diffusion, f.general_mute, root_uuid));
+          f.mode, f.diffusion, f.general_mute ? 1 : 0, root_uuid));
 
   // Main speaker group
   res += std::format(

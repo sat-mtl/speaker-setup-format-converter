@@ -32,5 +32,4 @@ struct file
   speakers header;
   std::vector<loudspeaker> loudspeakers;
 };
-
 }

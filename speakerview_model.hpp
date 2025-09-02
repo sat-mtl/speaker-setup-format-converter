@@ -30,7 +30,7 @@ struct group
 
 struct file
 {
-  std::string mode;
+  std::string mode = "Cube";
   double diffusion{};
   double general_mute{};
 
