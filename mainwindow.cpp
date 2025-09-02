@@ -49,7 +49,8 @@ void MainWindow::setupUi()
 
   m_inputFormatCombo = new QComboBox();
   m_inputFormatCombo->addItems(
-      {"Auto-detect", "EASE", "IEM", "Spat (IRCAM)", "CSV", "SpatGRIS", "4D Sound", "Spat Revolution"});
+      {"Auto-detect", "EASE", "AIIRA (IEM)", "Spat (IRCAM)", "CSV", "SpatGRIS",
+       "4D Sound", "Spat Revolution"});
   connect(
       m_inputFormatCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
       &MainWindow::onInputFormatChanged);
@@ -154,7 +155,7 @@ void MainWindow::onSaveFile()
   {
     hint = "speakers.xld";
   }
-  else if(outputFormat == "IEM")
+  else if(outputFormat == "AIIRA (IEM)")
   {
     hint = "speakers.json";
   }
