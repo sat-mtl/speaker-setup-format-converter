@@ -16,10 +16,8 @@ int main(int argc, char* argv[])
 
   QApplication app(argc, argv);
   Q_INIT_RESOURCE(fonts);
-
-  int main_font_id
-      = QFontDatabase::addApplicationFont(":/fonts/DMSans-VariableFont_opsz,wght.ttf");
-  int ital_font_id = QFontDatabase::addApplicationFont(":/fonts/DMSans-Italic-VariableFont_opsz,wght.ttf");
+  QFontDatabase::addApplicationFont(":/fonts/DMSans-VariableFont_opsz,wght.ttf");
+  QFontDatabase::addApplicationFont(":/fonts/DMSans-Italic-VariableFont_opsz,wght.ttf");
 
   QFont font("DM Sans");
   font.setWeight(QFont::Medium);

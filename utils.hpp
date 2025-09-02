@@ -1,15 +1,17 @@
 #pragma once
 #include <cmath>
 
+#include <array>
+#include <numbers>
+#include <optional>
+#include <string_view>
+#include <tuple>
+
 #if __has_include(<charconv>) && defined(__cpp_lib_to_chars)
 #include <charconv>
 #else
 #include <boost/lexical_cast.hpp>
 #endif
-#include <numbers>
-#include <optional>
-#include <string_view>
-#include <tuple>
 
 namespace spatparse
 {
@@ -104,7 +106,7 @@ static void cartesian_to_spherical(
 // Convert azimuth from standard range [0, 360) to IEM AIIRAD range [-180, 180]
 // IEM AIIRAD: negative values on the right (0 to 180 becomes 0 to -180)
 //              positive values on the left (180 to 360 becomes 180 to 0)
-static double azimuth_to_iem_aiirad(double azimuth)
+static constexpr double azimuth_to_iem_aiirad(double azimuth)
 {
   // Normalize to [0, 360) range
   while(azimuth < 0.0)
@@ -125,7 +127,7 @@ static double azimuth_to_iem_aiirad(double azimuth)
 }
 
 // Convert azimuth from IEM AIIRAD range [-180, 180] to standard range [0, 360)
-static double azimuth_from_iem_aiirad(double azimuth)
+static constexpr double azimuth_from_iem_aiirad(double azimuth)
 {
   if(azimuth <= 0.0)
   {
@@ -142,7 +144,7 @@ static double azimuth_from_iem_aiirad(double azimuth)
 // Convert azimuth from standard range [0, 360) to Spat5 range [-180, 180]
 // Spat5: positive values on the right (0 to 180 stays 0 to 180)
 //        negative values on the left (180 to 360 becomes -180 to 0)
-static double azimuth_to_spat5(double azimuth)
+static constexpr double azimuth_to_spat5(double azimuth)
 {
   // Normalize to [0, 360) range
   while(azimuth < 0.0)
@@ -163,7 +165,7 @@ static double azimuth_to_spat5(double azimuth)
 }
 
 // Convert azimuth from Spat5 range [-180, 180] to standard range [0, 360)
-static double azimuth_from_spat5(double azimuth)
+static constexpr double azimuth_from_spat5(double azimuth)
 {
   if(azimuth < 0.0)
   {
@@ -176,5 +178,9 @@ static double azimuth_from_spat5(double azimuth)
     return azimuth;
   }
 }
-
+}
+static constexpr std::array<double, 3>
+scale_distances(double x, double y, double z, double scale_factor)
+{
+  return {x * scale_factor, y * scale_factor, z * scale_factor};
 }

@@ -33,6 +33,8 @@ void convert(
     spk_out.is_enabled = true; // No disabled state in this format
     output.loudspeakers.push_back(spk_out);
   }
+
+  output.preprocess();
 }
 
 void convert(
@@ -68,6 +70,8 @@ void convert(
 
     output.loudspeakers.push_back(spk_out);
   }
+
+  output.preprocess();
 }
 
 void convert(
@@ -99,6 +103,8 @@ void convert(
 
     output.loudspeakers.push_back(spk_out);
   }
+
+  output.preprocess();
 }
 
 void convert(
@@ -124,6 +130,8 @@ void convert(
     spk_out.delay_ms = spk_in.delay;
     output.loudspeakers.push_back(spk_out);
   }
+
+  output.preprocess();
 }
 
 void convert(
@@ -132,7 +140,7 @@ void convert(
 {
   output.name = "SpatGRIS Layout";
   output.description = "A layout from SpatGRIS";
-  output.length_unit = "m"; // Unit is not specified, assume meters
+  output.length_unit = ""; // SpatGRIS is unit-less
   output.loudspeakers.clear();
   const auto& speakers = spatparse::spatgris::all_speakers(input);
   output.loudspeakers.reserve(speakers.size());
@@ -148,6 +156,65 @@ void convert(
     spk_out.gain_db = to_db(spk_in.gain);
     output.loudspeakers.push_back(spk_out);
   }
+
+  output.preprocess();
+}
+
+void convert(
+    const spatparse::fourdsound::file& input,
+    spatparse::unified::loudspeaker_configuration& output)
+{
+  output.name = "4D Sound Layout";
+  output.description = "A layout from 4D Sound";
+  output.length_unit = "m"; // 4D Sound typically uses meters
+  output.loudspeakers.clear();
+  output.loudspeakers.reserve(input.speakers.size());
+
+  for(const auto& spk_in : input.speakers)
+  {
+    spatparse::unified::loudspeaker spk_out;
+    spk_out.name = spk_in.id;
+    spk_out.x = spk_in.x;
+    spk_out.y = spk_in.y;
+    spk_out.z = spk_in.z;
+    spk_out.gain_db = 0.0;  // No gain information in 4D Sound format
+    spk_out.delay_ms = 0.0; // No delay information in 4D Sound format
+    spk_out.is_enabled = true;
+    spk_out.is_virtual = (spk_in.speakerType == "sub"); // Mark subs as virtual
+    output.loudspeakers.push_back(spk_out);
+  }
+
+  output.preprocess();
+}
+
+void convert(
+    const spatparse::spat_revolution::file& in,
+    spatparse::unified::loudspeaker_configuration& output)
+{
+  // If there are multiple configurations, use the first one
+  if(in.configurations.empty())
+    return;
+
+  const auto& config = in.configurations[0];
+  output.name = config.name;
+  output.description = config.channel_desc;
+  output.length_unit = "m";
+
+  for(const auto& ch : config.channels)
+  {
+    spatparse::unified::loudspeaker sp_out;
+    sp_out.name = ch.name;
+    sp_out.gain_db = 1.0; // No gain information in Spat Revolution format
+
+    // Convert spherical coordinates to Cartesian
+    // Spat Revolution uses degrees for azimuth and elevation
+    spherical_to_cartesian(
+        ch.azimuth, ch.elevation, ch.distance, sp_out.x, sp_out.y, sp_out.z);
+
+    output.loudspeakers.push_back(sp_out);
+  }
+
+  output.preprocess();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -172,8 +239,8 @@ void convert(
 
     spatparse::aiira::loudspeaker spk_out;
     double standard_azimuth, elevation, radius;
-    cartesian_to_spherical(
-        spk_in.x, spk_in.y, spk_in.z, standard_azimuth, elevation, radius);
+    auto [x, y, z] = input.scale_distance(spk_in);
+    cartesian_to_spherical(x, y, z, standard_azimuth, elevation, radius);
     // Convert from standard azimuth to IEM AIIRAD azimuth
     spk_out.azimuth = azimuth_to_iem_aiirad(standard_azimuth);
     spk_out.elevation = elevation;
@@ -204,9 +271,10 @@ void convert(
     // CSV can store either format, but unified only has Cartesian.
     // We will always write out Cartesian coordinates.
     spatparse::csv::xyz_position pos;
-    pos.x = spk_in.x;
-    pos.y = spk_in.y;
-    pos.z = spk_in.z;
+    auto [x, y, z] = input.scale_distance(spk_in);
+    pos.x = x;
+    pos.y = y;
+    pos.z = z;
     spk_out.position = pos;
 
     output.speakers.push_back(spk_out);
@@ -230,9 +298,10 @@ void convert(
 
     spatparse::ease::loudspeaker spk_out;
     spk_out.label = spk_in.name;
-    spk_out.x = spk_in.x;
-    spk_out.y = spk_in.y;
-    spk_out.z = spk_in.z;
+    auto [x, y, z] = input.scale_distance(spk_in);
+    spk_out.x = x;
+    spk_out.y = y;
+    spk_out.z = z;
     spk_out.ver = spk_in.pitch;
     spk_out.hor = spk_in.yaw;
     spk_out.rot = spk_in.roll;
@@ -268,8 +337,8 @@ void convert(
     spatparse::spat::loudspeaker spk_out;
     spk_out.name = spk_in.name;
     double standard_azimuth, elevation, distance;
-    cartesian_to_spherical(
-        spk_in.x, spk_in.y, spk_in.z, standard_azimuth, elevation, distance);
+    auto [x, y, z] = input.scale_distance(spk_in);
+    cartesian_to_spherical(x, y, z, standard_azimuth, elevation, distance);
     // Convert from standard azimuth to Spat5 azimuth
     spk_out.azimuth = azimuth_to_spat5(standard_azimuth);
     spk_out.elevation = elevation;
@@ -294,36 +363,12 @@ void convert(
 
     spatparse::spatgris::loudspeaker spk_out;
     spk_out.name = spk_in.name;
-    spk_out.x = spk_in.x;
-    spk_out.y = spk_in.y;
-    spk_out.z = spk_in.z;
+    auto [x, y, z] = input.normalize_distance(spk_in.x, spk_in.y, spk_in.z);
+    spk_out.x = x;
+    spk_out.y = y;
+    spk_out.z = z;
     spk_out.gain = from_db(spk_in.gain_db);
     output.children.push_back(std::move(spk_out));
-  }
-}
-
-void convert(
-    const spatparse::fourdsound::file& input,
-    spatparse::unified::loudspeaker_configuration& output)
-{
-  output.name = "4D Sound Layout";
-  output.description = "A layout from 4D Sound";
-  output.length_unit = "m"; // 4D Sound typically uses meters
-  output.loudspeakers.clear();
-  output.loudspeakers.reserve(input.speakers.size());
-
-  for(const auto& spk_in : input.speakers)
-  {
-    spatparse::unified::loudspeaker spk_out;
-    spk_out.name = spk_in.id;
-    spk_out.x = spk_in.x;
-    spk_out.y = spk_in.y;
-    spk_out.z = spk_in.z;
-    spk_out.gain_db = 0.0; // No gain information in 4D Sound format
-    spk_out.delay_ms = 0.0; // No delay information in 4D Sound format
-    spk_out.is_enabled = true;
-    spk_out.is_virtual = (spk_in.speakerType == "sub"); // Mark subs as virtual
-    output.loudspeakers.push_back(spk_out);
   }
 }
 
@@ -341,55 +386,29 @@ void convert(
     spatparse::fourdsound::speaker spk_out;
     spk_out.id = spk_in.name.empty() ? std::format("speaker_{}", channel) : spk_in.name;
     spk_out.ch = channel++;
-    spk_out.x = spk_in.x;
-    spk_out.y = spk_in.y;
-    spk_out.z = spk_in.z;
+    auto [x, y, z] = input.scale_distance(spk_in);
+    spk_out.x = x;
+    spk_out.y = y;
+    spk_out.z = z;
     spk_out.speakerType = spk_in.is_virtual ? "sub" : "satellite";
     output.speakers.push_back(spk_out);
   }
 }
 
 void convert(
-    const spatparse::spat_revolution::file& in,
-    spatparse::unified::loudspeaker_configuration& output)
-{
-  // If there are multiple configurations, use the first one
-  if(in.configurations.empty())
-    return;
-
-  const auto& config = in.configurations[0];
-  output.name = config.name;
-  output.description = config.channel_desc;
-
-  for(const auto& ch : config.channels)
-  {
-    spatparse::unified::loudspeaker sp_out;
-    sp_out.name = ch.name;
-    sp_out.gain_db = 1.0; // No gain information in Spat Revolution format
-
-    // Convert spherical coordinates to Cartesian
-    // Spat Revolution uses degrees for azimuth and elevation
-    spherical_to_cartesian(
-        ch.azimuth, ch.elevation, ch.distance, sp_out.x, sp_out.y, sp_out.z);
-
-    output.loudspeakers.push_back(sp_out);
-  }
-}
-
-void convert(
-    const spatparse::unified::loudspeaker_configuration& in,
+    const spatparse::unified::loudspeaker_configuration& input,
     spatparse::spat_revolution::file& output)
 {
   spatparse::spat_revolution::configuration conf;
-  conf.name = in.name;
-  conf.channel_desc = in.description;
+  conf.name = input.name;
+  conf.channel_desc = input.description;
 
-  for(const auto& sp : in.loudspeakers)
+  for(const auto& spk_in : input.loudspeakers)
   {
     spatparse::spat_revolution::channel ch_out;
-    ch_out.name = sp.name;
-    cartesian_to_spherical(
-        sp.x, sp.y, sp.z, ch_out.azimuth, ch_out.elevation, ch_out.distance);
+    ch_out.name = spk_in.name;
+    auto [x, y, z] = input.scale_distance(spk_in);
+    cartesian_to_spherical(x, y, z, ch_out.azimuth, ch_out.elevation, ch_out.distance);
 
     conf.channels.push_back(ch_out);
   }
