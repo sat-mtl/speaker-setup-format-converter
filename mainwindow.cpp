@@ -52,7 +52,7 @@ void MainWindow::setupUi()
       {"Auto-detect", "EASE", "AIIRA (IEM)", "Spat (IRCAM)", "CSV", "SpatGRIS",
        "4D Sound", "Spat Revolution"});
   connect(
-      m_inputFormatCombo, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+      m_inputFormatCombo, qOverload<int>(&QComboBox::currentIndexChanged), this,
       &MainWindow::onInputFormatChanged);
   formatLayout->addWidget(m_inputFormatCombo);
 
@@ -77,7 +77,18 @@ void MainWindow::setupUi()
       {"EASE", "IEM", "Spat (IRCAM)", "CSV", "SpatGRIS (v3)", "SpatGRIS (v4)",
        "4D Sound", "Spat Revolution"});
   m_outputFormatCombo->setCurrentIndex(0);
+  connect(
+      m_outputFormatCombo, qOverload<int>(&QComboBox::currentIndexChanged), this,
+      &MainWindow::onOutputFormatChanged);
   buttonLayout->addWidget(m_outputFormatCombo);
+
+  buttonLayout->addWidget(new QLabel{"Conversion distance ratio:"});
+  m_conversionRatio = new QDoubleSpinBox;
+  m_conversionRatio->setEnabled(false);
+  m_conversionRatio->setRange(0.0, 1e9);
+  m_conversionRatio->setValue(1.0);
+  buttonLayout->addWidget(m_conversionRatio);
+
   m_convertButton = new QPushButton("Convert");
   m_convertButton->setEnabled(false);
   connect(m_convertButton, &QPushButton::clicked, this, &MainWindow::onConvert);
@@ -145,6 +156,8 @@ void MainWindow::doLoadFile(const QString& filePath, const QByteArray& fileConte
   m_currentFilePath = filePath;
 
   m_statusLabel->setText("Loaded: " + QFileInfo(filePath).fileName());
+
+  updateDistanceRatioWidget();
 }
 void MainWindow::onSaveFile()
 {
@@ -278,6 +291,10 @@ void MainWindow::onConvert()
     // Step 2: Check for parsing success and serialize from the unified format.
     if(unified_config)
     {
+      if(this->m_conversionRatio->isEnabled())
+      {
+        unified_config->normalization_ratio = this->m_conversionRatio->value();
+      }
       std::string output_string;
 
       if(outputFormat == "EASE")
@@ -349,11 +366,37 @@ void MainWindow::onConvert()
 void MainWindow::onInputFormatChanged(int index)
 {
   updateConvertButton();
+  updateDistanceRatioWidget();
 }
 
+void MainWindow::onOutputFormatChanged(int index)
+{
+  updateDistanceRatioWidget();
+}
 void MainWindow::updateConvertButton()
 {
   m_convertButton->setEnabled(!m_inputTextEdit->toPlainText().isEmpty());
+}
+
+void MainWindow::updateDistanceRatioWidget()
+{
+  this->m_conversionRatio->setEnabled(false);
+  std::string in_format = m_inputFormatCombo->currentText().toStdString();
+  if(m_inputFormatCombo->currentIndex() == 0)
+  {
+    // Auto-detect
+    in_format = detectFormat(m_currentFilePath);
+  }
+  std::string out_format = m_outputFormatCombo->currentText().toStdString();
+  if(in_format == out_format)
+    return;
+  if(in_format.contains("SpatGRIS"))
+  {
+    if(out_format.contains("SpatGRIS"))
+      this->m_conversionRatio->setEnabled(false);
+    else
+      this->m_conversionRatio->setEnabled(true);
+  }
 }
 
 std::string MainWindow::detectFormat(const QString& filePath)
@@ -378,7 +421,7 @@ std::string MainWindow::detectFormat(const QString& filePath)
     if(file.open(QIODevice::ReadOnly | QIODevice::Text))
     {
       QTextStream stream(&file);
-      QString content = stream.readAll();
+      QString content = stream.read(100);
       if(content.contains("<setup"))
         return "4D Sound";
       else if(content.contains("<SPEAKER_SETUP"))

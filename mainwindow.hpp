@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QDoubleSpinBox>
 #include <QMainWindow>
 
 #include <memory>
@@ -25,10 +26,12 @@ private slots:
   void onSaveFile();
   void onConvert();
   void onInputFormatChanged(int index);
+  void onOutputFormatChanged(int index);
 
 private:
   void setupUi();
   void updateConvertButton();
+  void updateDistanceRatioWidget();
   std::string detectFormat(const QString& filePath);
 
   QComboBox* m_inputFormatCombo;
@@ -38,6 +41,7 @@ private:
   QPushButton* m_loadButton;
   QPushButton* m_saveButton;
   QPushButton* m_convertButton;
+  QDoubleSpinBox* m_conversionRatio;
   QLabel* m_statusLabel;
 
   QString m_currentFilePath;
