@@ -143,24 +143,6 @@ void MainWindow::doLoadFile(const QString& filePath, const QByteArray& fileConte
   m_inputTextEdit->setPlainText(content);
   m_currentFilePath = filePath;
 
-  // Auto-detect format if needed
-  if(m_inputFormatCombo->currentIndex() == 0)
-  {
-    std::string detectedFormat = detectFormat(filePath);
-    if(!detectedFormat.empty())
-    {
-      for(int i = 1; i < m_inputFormatCombo->count(); ++i)
-      {
-        if(m_inputFormatCombo->itemText(i).toLower()
-           == QString::fromStdString(detectedFormat).toLower())
-        {
-          m_inputFormatCombo->setCurrentIndex(i);
-          break;
-        }
-      }
-    }
-  }
-
   m_statusLabel->setText("Loaded: " + QFileInfo(filePath).fileName());
 }
 void MainWindow::onSaveFile()
