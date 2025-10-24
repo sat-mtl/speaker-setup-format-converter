@@ -64,7 +64,7 @@ build:windows:
     - choco install -y msys2
     # Download OSSIA SDK
     - Invoke-WebRequest -Uri "https://github.com/ossia/score/raw/master/tools/fetch-sdk.sh" -OutFile "fetch-sdk.sh"
-    - bash fetch-sdk.sh
+    - C:\tools\msys64\usr\bin\bash.exe fetch-sdk.sh
     # Download and extract Boost
     - Invoke-WebRequest -Uri "https://github.com/ossia/sdk/releases/download/sdk31/boost_1_88_0.tar.gz" -OutFile "boost_1_88_0.tar.gz"
     - tar xzf boost_1_88_0.tar.gz -C C:\
