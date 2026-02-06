@@ -5,7 +5,11 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
+#if __has_include(<csv2/reader.hpp>)
 #include <csv2/reader.hpp>
+#else
+#include <csv2/csv2.hpp>
+#endif
 
 #include <iostream>
 
