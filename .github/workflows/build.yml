@@ -138,7 +138,7 @@ jobs:
     name: windows
     runs-on: windows-latest
     env:
-      SDK: /c/ossia-sdk-x86_64
+      SDK: c:/ossia-sdk-x86_64
 
     steps:
       - name: Checkout repository
