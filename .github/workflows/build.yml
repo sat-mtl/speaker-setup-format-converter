@@ -53,6 +53,8 @@ jobs:
             -DBUILD_TESTING=ON \
             -DBOOST_ROOT=$SDK/boost/include \
             -DCMAKE_PREFIX_PATH="$SDK/qt6-static;$SDK/sysroot;$SDK/sysroot/lib/cmake/freetype;$SDK/sysroot/lib/cmake/harfbuzz" \
+            -DCMAKE_C_COMPILER="$SDK/llvm/bin/clang" \
+            -DCMAKE_CXX_COMPILER="$SDK/llvm/bin/clang++" \
             -GNinja
 
       - name: Build
@@ -152,7 +154,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_TESTING=ON \
             -DBOOST_ROOT=$SDK/boost/include \
-            -DCMAKE_PREFIX_PATH="$SDK/qt6-static;$SDK/sysroot;$SDK/sysroot/lib/cmake/freetype;$SDK/sysroot/lib/cmake/harfbuzz" \
+            -DCMAKE_PREFIX_PATH="$SDK/qt6-static;$SDK/qt6-static/lib;$SDK/qt6-static/lib/cmake;$SDK/sysroot;$SDK/sysroot/lib/cmake/freetype;$SDK/sysroot/lib/cmake/harfbuzz" \
             -DCMAKE_C_COMPILER="$SDK/llvm/bin/clang.exe" \
             -DCMAKE_CXX_COMPILER="$SDK/llvm/bin/clang++.exe" \
             -GNinja
