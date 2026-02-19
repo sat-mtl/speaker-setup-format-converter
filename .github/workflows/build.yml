@@ -9,63 +9,50 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
-    name: ${{ matrix.platform }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-latest
-            platform: linux-x86_64
-            sdk-path: /opt/ossia-sdk-x86_64
-          - os: macos-latest
-            platform: macos-arm
-            sdk-path: /opt/ossia-sdk-aarch64
-          - os: windows-latest
-            platform: windows
-            sdk-path: /c/ossia-sdk-x86_64
+  build-linux:
+    name: linux-x86_64
+    runs-on: ubuntu-latest
+    container: almalinux:9
+    env:
+      SDK: /opt/ossia-sdk-x86_64
 
     steps:
+      - name: Install dependencies
+        shell: bash
+        run: |
+          yum -y update
+          yum -y install epel-release dnf-plugins-core
+          dnf config-manager --set-enabled crb
+          yum -y update
+          yum -y install \
+            llvm-toolset gcc-toolset-14 \
+            glibc-devel alsa-lib-devel mesa-libGL-devel libxkbcommon-x11-devel zlib-devel ncurses-devel \
+            wget xz git cmake xcb-util xcb-util-devel libX11-devel libXrender-devel libXi-devel dbus-devel glib2-devel \
+            nasm alsa-lib-devel libxcb-devel xcb-util-image xcb-util-keysyms xcb-util-image-devel xcb-util-renderutil-devel \
+            vulkan vulkan-devel xcb-util-wm xcb-util-wm-devel libxkbcommon-devel libXcomposite-devel xcb-util-keysyms-devel \
+            libv4l-devel xcb-util-cursor-devel pulseaudio-libs-devel \
+            rsync bluez-libs-devel avahi-devel wayland-devel wayland-protocols-devel libwayland-egl libwayland-cursor libwayland-client \
+            ninja-build libxkbfile-devel xorg-x11-proto-devel bzip2 systemd-devel systemd-udev mesa-libgbm-devel
+          yum clean all
+
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Download OSSIA SDK
-        uses: ossia/actions/download-ossia-sdk@master
+        shell: bash
+        run: |
+          curl -L -O "https://github.com/ossia/score/raw/master/tools/fetch-sdk.sh"
+          chmod +x fetch-sdk.sh
+          ./fetch-sdk.sh
 
-      - name: Configure (Linux)
-        if: runner.os == 'Linux'
+      - name: Configure
         shell: bash
         run: |
           cmake -S . -B build \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_TESTING=ON \
-            -DBOOST_ROOT=${{ matrix.sdk-path }}/boost/include \
-            -DCMAKE_PREFIX_PATH="${{ matrix.sdk-path }}/qt6-static;${{ matrix.sdk-path }}/sysroot" \
-            -GNinja
-
-      - name: Configure (macOS)
-        if: runner.os == 'macOS'
-        shell: bash
-        run: |
-          cmake -S . -B build \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DBUILD_TESTING=ON \
-            -DBOOST_ROOT=${{ matrix.sdk-path }}/boost/include \
-            -DCMAKE_PREFIX_PATH="${{ matrix.sdk-path }}/qt6-static;${{ matrix.sdk-path }}/sysroot" \
-            -GNinja
-
-      - name: Configure (Windows)
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          cmake -S . -B build \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DBUILD_TESTING=ON \
-            -DBOOST_ROOT=${{ matrix.sdk-path }}/boost/include \
-            -DCMAKE_PREFIX_PATH="${{ matrix.sdk-path }}/qt6-static;${{ matrix.sdk-path }}/sysroot" \
-            -DCMAKE_C_COMPILER="${{ matrix.sdk-path }}/llvm/bin/clang.exe" \
-            -DCMAKE_CXX_COMPILER="${{ matrix.sdk-path }}/llvm/bin/clang++.exe" \
+            -DBOOST_ROOT=$SDK/boost/include \
+            -DCMAKE_PREFIX_PATH="$SDK/qt6-static;$SDK/sysroot;$SDK/sysroot/lib/cmake/freetype;$SDK/sysroot/lib/cmake/harfbuzz" \
             -GNinja
 
       - name: Build
@@ -76,7 +63,7 @@ jobs:
         shell: bash
         run: |
           cd build
-          for test in *-test *-test.exe; do
+          for test in *-test; do
             [ -f "$test" ] && echo "Running $test..." && ./"$test"
           done
 
@@ -84,27 +71,119 @@ jobs:
         shell: bash
         run: |
           mkdir -p packages
-          if [[ "${{ runner.os }}" == "Windows" ]]; then
-            cp build/spatparsecli.exe packages/
-            cp build/spatconverter-gui.exe packages/
-          elif [[ "${{ runner.os }}" == "macOS" ]]; then
-            cp build/spatparsecli packages/
-            cp -r build/spatconverter-gui.app packages/ 2>/dev/null || cp build/spatconverter-gui packages/
-          else
-            cp build/spatparsecli packages/
-            cp build/spatconverter-gui packages/
-          fi
+          cp build/spatparsecli packages/
+          cp build/spatconverter-gui packages/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: spatconverter-${{ matrix.platform }}
+          name: spatconverter-linux-x86_64
+          path: packages/
+          retention-days: 30
+
+  build-macos:
+    name: macos-arm
+    runs-on: macos-latest
+    env:
+      SDK: /opt/ossia-sdk-aarch64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download OSSIA SDK
+        uses: ossia/actions/download-ossia-sdk@master
+
+      - name: Configure
+        shell: bash
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTING=ON \
+            -DBOOST_ROOT=$SDK/boost/include \
+            -DCMAKE_PREFIX_PATH="$SDK/qt6-static;$SDK/sysroot;$SDK/sysroot/lib/cmake/freetype;$SDK/sysroot/lib/cmake/harfbuzz" \
+            -GNinja
+
+      - name: Build
+        shell: bash
+        run: cmake --build build
+
+      - name: Run tests
+        shell: bash
+        run: |
+          cd build
+          for test in *-test; do
+            [ -f "$test" ] && echo "Running $test..." && ./"$test"
+          done
+
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p packages
+          cp build/spatparsecli packages/
+          cp -r build/spatconverter-gui.app packages/ 2>/dev/null || cp build/spatconverter-gui packages/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: spatconverter-macos-arm
+          path: packages/
+          retention-days: 30
+
+  build-windows:
+    name: windows
+    runs-on: windows-latest
+    env:
+      SDK: /c/ossia-sdk-x86_64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download OSSIA SDK
+        uses: ossia/actions/download-ossia-sdk@master
+
+      - name: Configure
+        shell: bash
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTING=ON \
+            -DBOOST_ROOT=$SDK/boost/include \
+            -DCMAKE_PREFIX_PATH="$SDK/qt6-static;$SDK/sysroot;$SDK/sysroot/lib/cmake/freetype;$SDK/sysroot/lib/cmake/harfbuzz" \
+            -DCMAKE_C_COMPILER="$SDK/llvm/bin/clang.exe" \
+            -DCMAKE_CXX_COMPILER="$SDK/llvm/bin/clang++.exe" \
+            -GNinja
+
+      - name: Build
+        shell: bash
+        run: cmake --build build
+
+      - name: Run tests
+        shell: bash
+        run: |
+          cd build
+          for test in *-test.exe; do
+            [ -f "$test" ] && echo "Running $test..." && ./"$test"
+          done
+
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p packages
+          cp build/spatparsecli.exe packages/
+          cp build/spatconverter-gui.exe packages/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: spatconverter-windows
           path: packages/
           retention-days: 30
 
   release:
     name: Create Release
-    needs: build
+    needs: [build-linux, build-macos, build-windows]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
 
