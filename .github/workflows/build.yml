@@ -1,0 +1,137 @@
+name: Build
+
+on:
+  push:
+    branches: [ main, master ]
+    tags:
+      - 'v*'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+            sdk-path: /opt/ossia-sdk-x86_64
+          - os: macos-latest
+            platform: macos-arm
+            sdk-path: /opt/ossia-sdk-aarch64
+          - os: windows-latest
+            platform: windows
+            sdk-path: /c/ossia-sdk-x86_64
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download OSSIA SDK
+        uses: ossia/actions/download-ossia-sdk@master
+
+      - name: Configure (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTING=ON \
+            -DBOOST_ROOT=${{ matrix.sdk-path }}/boost/include \
+            -DCMAKE_PREFIX_PATH="${{ matrix.sdk-path }}/qt6-static;${{ matrix.sdk-path }}/sysroot" \
+            -GNinja
+
+      - name: Configure (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTING=ON \
+            -DBOOST_ROOT=${{ matrix.sdk-path }}/boost/include \
+            -DCMAKE_PREFIX_PATH="${{ matrix.sdk-path }}/qt6-static;${{ matrix.sdk-path }}/sysroot" \
+            -GNinja
+
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTING=ON \
+            -DBOOST_ROOT=${{ matrix.sdk-path }}/boost/include \
+            -DCMAKE_PREFIX_PATH="${{ matrix.sdk-path }}/qt6-static;${{ matrix.sdk-path }}/sysroot" \
+            -DCMAKE_C_COMPILER="${{ matrix.sdk-path }}/llvm/bin/clang.exe" \
+            -DCMAKE_CXX_COMPILER="${{ matrix.sdk-path }}/llvm/bin/clang++.exe" \
+            -GNinja
+
+      - name: Build
+        shell: bash
+        run: cmake --build build
+
+      - name: Run tests
+        shell: bash
+        run: |
+          cd build
+          for test in *-test *-test.exe; do
+            [ -f "$test" ] && echo "Running $test..." && ./"$test"
+          done
+
+      - name: Package
+        shell: bash
+        run: |
+          mkdir -p packages
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            cp build/spatparsecli.exe packages/
+            cp build/spatconverter-gui.exe packages/
+          elif [[ "${{ runner.os }}" == "macOS" ]]; then
+            cp build/spatparsecli packages/
+            cp -r build/spatconverter-gui.app packages/ 2>/dev/null || cp build/spatconverter-gui packages/
+          else
+            cp build/spatparsecli packages/
+            cp build/spatconverter-gui packages/
+          fi
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: spatconverter-${{ matrix.platform }}
+          path: packages/
+          retention-days: 30
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-packages
+          pattern: spatconverter-*
+          merge-multiple: true
+
+      - name: Create Release (on tags)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: all-packages/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+
+      - name: Upload to Continuous Release (on main/master)
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Continuous Build"
+          tag_name: "continuous"
+          files: all-packages/*
+          draft: false
+          prerelease: true
+          generate_release_notes: false
