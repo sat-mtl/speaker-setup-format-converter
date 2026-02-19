@@ -157,6 +157,8 @@ jobs:
             -DCMAKE_PREFIX_PATH="$SDK/qt6-static;$SDK/qt6-static/lib;$SDK/qt6-static/lib/cmake;$SDK/sysroot;$SDK/sysroot/lib/cmake/freetype;$SDK/sysroot/lib/cmake/harfbuzz" \
             -DCMAKE_C_COMPILER="$SDK/llvm/bin/clang.exe" \
             -DCMAKE_CXX_COMPILER="$SDK/llvm/bin/clang++.exe" \
+            --debug-find-pkg=Qt6 \
+            --log-level=DEBUG \
             -GNinja
 
       - name: Build
