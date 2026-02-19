@@ -183,11 +183,23 @@ if(Qt6_FOUND)
     mainwindow.hpp
   )
   
+  find_library(BROTLICOMMON_LIBRARY NAMES brotlicommon brotlicommon-static)
+  find_library(BROTLIDEC_LIBRARY NAMES brotlidec brotlidec-static)
+  find_library(BROTLIENC_LIBRARY NAMES brotlienc brotlienc-static)
+
   target_link_libraries(spatconverter-gui PRIVATE
     spat-format-converter
     Qt6::Core
     Qt6::Widgets
   )
+
+  if(BROTLICOMMON_LIBRARY)
+    target_link_libraries(spatconverter-gui PRIVATE
+      ${BROTLICOMMON_LIBRARY}
+      ${BROTLIDEC_LIBRARY}
+      ${BROTLIENC_LIBRARY}
+    )
+  endif()
   
   set_target_properties(spatconverter-gui PROPERTIES
     WIN32_EXECUTABLE TRUE
