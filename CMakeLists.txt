@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
-project(spat-format-converter
+project(speaker-layout-converter
   VERSION 1.0.0
-  DESCRIPTION "A cross-platform spatialization format converter"
+  DESCRIPTION "Speaker Layout Converter: convert loudspeaker layouts between spatialization tools (SpatGRIS, IEM, IRCAM Spat, EASE, 4DSOUND, Spat Revolution, CSV)"
   LANGUAGES CXX
-  HOMEPAGE_URL "https://gitlab.com/sat-mtl/audio"
+  HOMEPAGE_URL "https://github.com/sat-mtl/speaker-setup-format-converter"
 )
 
 set(CMAKE_CXX_STANDARD 23)
@@ -58,7 +58,7 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(pugixml)
 
-add_library(spat-format-converter
+add_library(speaker-layout-converter-lib
   converter.hpp
   converter.cpp
 
@@ -91,25 +91,25 @@ add_library(spat-format-converter
   spat_revolution_model.hpp
 )
 
-target_compile_definitions(spat-format-converter
+target_compile_definitions(speaker-layout-converter-lib
   PUBLIC
     BOOST_ALL_NO_LIB=1
     BOOST_NO_RTTI=1
     BOOST_MATH_DISABLE_FLOAT128=1
 )
 if(BOOST_ROOT)
-  target_include_directories(spat-format-converter
+  target_include_directories(speaker-layout-converter-lib
     PUBLIC
       "${BOOST_ROOT}"
   )
 elseif(Boost_INCLUDE_DIR)
-  target_include_directories(spat-format-converter
+  target_include_directories(speaker-layout-converter-lib
     PUBLIC
       "${Boost_INCLUDE_DIR}"
   )
 endif()
 
-target_link_libraries(spat-format-converter
+target_link_libraries(speaker-layout-converter-lib
   PRIVATE
     ctre::ctre
     csv2::csv2
@@ -154,30 +154,30 @@ add_executable(spat-revolution-test
   tests/test_spat_revolution.cpp
   tests/spat_revolution.ioconfig
 )
-target_link_libraries(ease-test PRIVATE spat-format-converter)
-target_link_libraries(aiira-test PRIVATE spat-format-converter)
-target_link_libraries(spat-test PRIVATE spat-format-converter)
-target_link_libraries(csv-test PRIVATE spat-format-converter)
-target_link_libraries(speakerview-test PRIVATE spat-format-converter)
-target_link_libraries(converter-test PRIVATE spat-format-converter)
+target_link_libraries(ease-test PRIVATE speaker-layout-converter-lib)
+target_link_libraries(aiira-test PRIVATE speaker-layout-converter-lib)
+target_link_libraries(spat-test PRIVATE speaker-layout-converter-lib)
+target_link_libraries(csv-test PRIVATE speaker-layout-converter-lib)
+target_link_libraries(speakerview-test PRIVATE speaker-layout-converter-lib)
+target_link_libraries(converter-test PRIVATE speaker-layout-converter-lib)
 if(TARGET Catch2::Catch2WithMain)
-  target_link_libraries(azimuth-test PRIVATE spat-format-converter Catch2::Catch2WithMain)
+  target_link_libraries(azimuth-test PRIVATE speaker-layout-converter-lib Catch2::Catch2WithMain)
 endif()
-target_link_libraries(spat-revolution-test PRIVATE spat-format-converter)
+target_link_libraries(spat-revolution-test PRIVATE speaker-layout-converter-lib)
 endif()
 
 add_executable(spatparsecli
   cli.cpp
 )
 
-target_link_libraries(spatparsecli PRIVATE spat-format-converter args)
+target_link_libraries(spatparsecli PRIVATE speaker-layout-converter-lib args)
 
 # Qt GUI Application
 find_package(Qt6 REQUIRED COMPONENTS Core Widgets QUIET)
 if(Qt6_FOUND)
   set(CMAKE_AUTOMOC ON)
 
-  qt_add_executable(spatconverter-gui
+  qt_add_executable(speaker-layout-converter
     gui_main.cpp
     mainwindow.cpp
     mainwindow.hpp
@@ -187,26 +187,26 @@ if(Qt6_FOUND)
   find_library(BROTLIDEC_LIBRARY NAMES brotlidec brotlidec-static)
   find_library(BROTLIENC_LIBRARY NAMES brotlienc brotlienc-static)
 
-  target_link_libraries(spatconverter-gui PRIVATE
-    spat-format-converter
+  target_link_libraries(speaker-layout-converter PRIVATE
+    speaker-layout-converter-lib
     Qt6::Core
     Qt6::Widgets
   )
 
   if(BROTLICOMMON_LIBRARY)
-    target_link_libraries(spatconverter-gui PRIVATE
+    target_link_libraries(speaker-layout-converter PRIVATE
       ${BROTLICOMMON_LIBRARY}
       ${BROTLIDEC_LIBRARY}
       ${BROTLIENC_LIBRARY}
     )
   endif()
   
-  set_target_properties(spatconverter-gui PROPERTIES
+  set_target_properties(speaker-layout-converter PROPERTIES
     WIN32_EXECUTABLE TRUE
     MACOSX_BUNDLE TRUE
   )
 
-  qt_add_resources(spatconverter-gui "fonts"
+  qt_add_resources(speaker-layout-converter "fonts"
     PREFIX "/fonts"
     BASE resources/
     FILES 

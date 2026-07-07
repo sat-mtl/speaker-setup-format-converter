@@ -1,10 +1,62 @@
-This web app allows the format conversion and value parsing of a saved loudpseaker layout between different common spatialization tools, as well as with the EASE acoustic simulation software.
+# Speaker Layout Converter
 
-To use: 
+Convert loudspeaker layouts between the file formats used by common spatialization tools.
 
-1. Extract file in a folder.
-2. From that folder, in the Terminal/Command line, type :
- python -m http.server
+Each tool stores its speaker configuration in its own format. Speaker Layout Converter reads a
+layout from one format and writes it to another, going through a single internal model that keeps
+each speaker's name, position, orientation, gain and delay.
 
-Plans are being made to get the app accessible as a web app here : https://spatparse.sat.qc.ca
-But is already available here : https://ease-format-parser-b8ebcd.gitlab.io/
+## Supported formats
+
+Read and write, in any direction:
+
+| Format | Extension | Token |
+|---|---|---|
+| SpatGRIS v3 / v4 | `.xml` | `spatgris`, `spatgris_v3`, `spatgris_v4` |
+| IEM AllRADecoder | `.json` | `iem` |
+| IRCAM Spat / Panoramix | `.rtf` | `spat_ircam` |
+| EASE / EASE Focus 3 | `.xld`, `.ease` | `xld`, `ease` |
+| 4DSOUND | `.xml` | `4dsound` |
+| Flux Spat Revolution | `.ioconfig` | `spat_revolution` |
+| CSV (cartesian or spherical) | `.csv` | `csv` |
+
+SpatGRIS export detects dome vs cube layouts and can normalize distances.
+
+## Usage
+
+The same C++ engine ships as a command-line tool, a Qt desktop application and a WebAssembly build.
+
+### CLI (`spatparsecli`)
+
+```
+spatparsecli --in-format=<token> --out-format=<token> [--normalize <ratio>] [--center] <input-file> > <output-file>
+```
+
+Example:
+
+```
+spatparsecli --in-format=ease --out-format=spatgris_v4 room.xld > room_spatgris.xml
+```
+
+### GUI
+
+Run the `speaker-layout-converter` application, load a file and pick the output format.
+
+### Web
+
+The WebAssembly build runs the same converter in a browser.
+
+## Build
+
+Requires a C++23 compiler and CMake ≥ 3.25. Qt 6 (Core, Widgets) is needed only for the GUI; the
+remaining dependencies are fetched by CMake.
+
+```
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+```
+
+## Status
+
+Early stage, single maintainer. No versioned release yet — builds are published as CI artifacts.
+A LICENSE file is being added (see #4).
