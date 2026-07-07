@@ -75,12 +75,12 @@ jobs:
         run: |
           mkdir -p packages
           cp build/spatparsecli packages/
-          cp build/spatconverter-gui packages/
+          cp build/speaker-layout-converter packages/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: spatconverter-linux-x86_64
+          name: speaker-layout-converter-linux-x86_64
           path: packages/
           retention-days: 30
 
@@ -125,12 +125,12 @@ jobs:
         run: |
           mkdir -p packages
           cp build/spatparsecli packages/
-          cp -r build/spatconverter-gui.app packages/ 2>/dev/null || cp build/spatconverter-gui packages/
+          cp -r build/speaker-layout-converter.app packages/ 2>/dev/null || cp build/speaker-layout-converter packages/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: spatconverter-macos-arm
+          name: speaker-layout-converter-macos-arm
           path: packages/
           retention-days: 30
 
@@ -181,12 +181,12 @@ jobs:
         run: |
           mkdir -p packages
           cp build/spatparsecli.exe packages/
-          cp build/spatconverter-gui.exe packages/
+          cp build/speaker-layout-converter.exe packages/
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: spatconverter-windows
+          name: speaker-layout-converter-windows
           path: packages/
           retention-days: 30
 
@@ -201,7 +201,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: all-packages
-          pattern: spatconverter-*
+          pattern: speaker-layout-converter-*
           merge-multiple: true
 
       - name: Create Release (on tags)

@@ -120,7 +120,7 @@ void MainWindow::setupUi()
   statusBar()->addWidget(m_statusLabel);
 
   // Window properties
-  setWindowTitle("Spatial Format Converter");
+  setWindowTitle("Speaker Layout Converter");
   resize(800, 600);
 
   // Connect text changes to update convert button

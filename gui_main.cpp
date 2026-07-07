@@ -23,7 +23,7 @@ int main(int argc, char* argv[])
   font.setWeight(QFont::Medium);
   font.setHintingPreference(QFont::HintingPreference::PreferVerticalHinting);
   QApplication::setFont(font);
-  QApplication::setApplicationName("Spatial Format Converter");
+  QApplication::setApplicationName("Speaker Layout Converter");
   QApplication::setOrganizationName("Société des Arts Technologiques");
   QApplication::setOrganizationDomain("sat.qc.ca");
 

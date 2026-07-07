@@ -157,7 +157,7 @@ int main(int argc, char** argv)
   setlocale(LC_ALL, "C");
 
   args::ArgumentParser parser(
-      "spartparse CLI",
+      "Speaker Layout Converter",
       "A tool for converting speaker position file formats.\n"
       "Example: ./spatparsecli --normalize --in-format=ease --out-format=speakerview "
       "my_file.xld");
