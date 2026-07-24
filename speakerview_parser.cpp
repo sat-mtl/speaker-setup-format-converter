@@ -187,6 +187,11 @@ std::optional<spatparse::spatgris::file> parse(std::string_view input)
 
   spatparse::spatgris::file output_file;
 
+  // Setup-level attributes, written back by to_string / to_string_v4
+  output_file.mode = root_node.attribute("SPAT_MODE").as_string(output_file.mode.c_str());
+  output_file.diffusion = root_node.attribute("DIFFUSION").as_double();
+  output_file.general_mute = root_node.attribute("GENERAL_MUTE").as_double();
+
   // Check if this is v4 format by looking for SPEAKER_SETUP_VERSION attribute
   bool is_v4 = root_node.attribute("SPEAKER_SETUP_VERSION").as_string()[0] != '\0';
 
