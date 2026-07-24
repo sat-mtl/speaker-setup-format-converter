@@ -1,0 +1,13 @@
+# Several parsers are line-oriented, so line endings are semantic here.
+# Keep them identical on every platform rather than letting the checkout
+# decide: on Windows, autocrlf turned the LF fixtures into CRLF and four
+# tests failed on data that is byte-identical in the repository.
+* text=auto eol=lf
+
+# Test fixtures are embedded byte-for-byte with #embed: never translate them.
+tests/*.ease     -text
+tests/*.csv      -text
+tests/*.rtf      -text
+tests/*.xml      -text
+tests/*.json     -text
+tests/*.ioconfig -text
