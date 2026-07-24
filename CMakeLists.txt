@@ -42,6 +42,12 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(ctre)
 
+# args builds its examples and unit tests by default, with -Werror -pedantic:
+# recent compilers reject its bundled Catch header, so keep only the library.
+# Cache entries, not plain variables: args declares these with option() under
+# cmake_minimum_required(VERSION 3.10), where CMP0077 is OLD.
+set(ARGS_BUILD_EXAMPLE OFF CACHE BOOL "" FORCE)
+set(ARGS_BUILD_UNITTESTS OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
   args
   GIT_SHALLOW    TRUE
@@ -117,6 +123,8 @@ target_link_libraries(speaker-layout-converter-lib
 )
 
 if(BUILD_TESTING)
+enable_testing()
+
 add_executable(ease-test
   tests/test_ease.cpp
   tests/ease_sample.ease
@@ -164,6 +172,20 @@ if(TARGET Catch2::Catch2WithMain)
   target_link_libraries(azimuth-test PRIVATE speaker-layout-converter-lib Catch2::Catch2WithMain)
 endif()
 target_link_libraries(spat-revolution-test PRIVATE speaker-layout-converter-lib)
+
+# spat-revolution-test opens its sample by relative path, the others #embed theirs:
+# run them all from tests/ so the working directory is never a factor.
+foreach(test IN ITEMS
+    ease-test
+    aiira-test
+    spat-test
+    csv-test
+    speakerview-test
+    converter-test
+    azimuth-test
+    spat-revolution-test)
+  add_test(NAME ${test} COMMAND ${test} WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests")
+endforeach()
 endif()
 
 add_executable(spatparsecli
@@ -173,47 +195,44 @@ add_executable(spatparsecli
 target_link_libraries(spatparsecli PRIVATE speaker-layout-converter-lib args)
 
 # Qt GUI Application
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets QUIET)
-if(Qt6_FOUND)
-  set(CMAKE_AUTOMOC ON)
+# Not QUIET: when a Qt component fails to resolve, the reason is what we need to read.
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets)
+set(CMAKE_AUTOMOC ON)
 
-  qt_add_executable(speaker-layout-converter
-    gui_main.cpp
-    mainwindow.cpp
-    mainwindow.hpp
-  )
-  
-  find_library(BROTLICOMMON_LIBRARY NAMES brotlicommon brotlicommon-static)
-  find_library(BROTLIDEC_LIBRARY NAMES brotlidec brotlidec-static)
-  find_library(BROTLIENC_LIBRARY NAMES brotlienc brotlienc-static)
+qt_add_executable(speaker-layout-converter
+  gui_main.cpp
+  mainwindow.cpp
+  mainwindow.hpp
+)
 
+find_library(BROTLICOMMON_LIBRARY NAMES brotlicommon brotlicommon-static)
+find_library(BROTLIDEC_LIBRARY NAMES brotlidec brotlidec-static)
+find_library(BROTLIENC_LIBRARY NAMES brotlienc brotlienc-static)
+
+target_link_libraries(speaker-layout-converter PRIVATE
+  speaker-layout-converter-lib
+  Qt6::Core
+  Qt6::Widgets
+)
+
+if(BROTLICOMMON_LIBRARY)
   target_link_libraries(speaker-layout-converter PRIVATE
-    speaker-layout-converter-lib
-    Qt6::Core
-    Qt6::Widgets
+    ${BROTLICOMMON_LIBRARY}
+    ${BROTLIDEC_LIBRARY}
+    ${BROTLIENC_LIBRARY}
   )
-
-  if(BROTLICOMMON_LIBRARY)
-    target_link_libraries(speaker-layout-converter PRIVATE
-      ${BROTLICOMMON_LIBRARY}
-      ${BROTLIDEC_LIBRARY}
-      ${BROTLIENC_LIBRARY}
-    )
-  endif()
-  
-  set_target_properties(speaker-layout-converter PROPERTIES
-    WIN32_EXECUTABLE TRUE
-    MACOSX_BUNDLE TRUE
-  )
-
-  qt_add_resources(speaker-layout-converter "fonts"
-    PREFIX "/fonts"
-    BASE resources/
-    FILES 
-      resources/DMSans-VariableFont_opsz,wght.ttf
-      resources/DMSans-Italic-VariableFont_opsz,wght.ttf 
-  )
-  qt_finalize_project()
-else()
-  message(STATUS "Qt6 not found, GUI will not be built")
 endif()
+
+set_target_properties(speaker-layout-converter PROPERTIES
+  WIN32_EXECUTABLE TRUE
+  MACOSX_BUNDLE TRUE
+)
+
+qt_add_resources(speaker-layout-converter "fonts"
+  PREFIX "/fonts"
+  BASE resources/
+  FILES
+    resources/DMSans-VariableFont_opsz,wght.ttf
+    resources/DMSans-Italic-VariableFont_opsz,wght.ttf
+)
+qt_finalize_project()

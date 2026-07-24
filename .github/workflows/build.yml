@@ -36,7 +36,7 @@ jobs:
           yum clean all
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download OSSIA SDK
         shell: bash
@@ -52,7 +52,8 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_TESTING=ON \
             -DBOOST_ROOT=$SDK/boost/include \
-            -DCMAKE_PREFIX_PATH="$SDK/qt6-static;$SDK/sysroot;$SDK/sysroot/lib/cmake/freetype;$SDK/sysroot/lib/cmake/harfbuzz" \
+            -DOPENSSL_ROOT_DIR="$SDK/openssl" \
+            -DCMAKE_PREFIX_PATH="$SDK/qt6-static;$SDK/openssl;$SDK/sysroot;$SDK/sysroot/lib/cmake/freetype;$SDK/sysroot/lib/cmake/harfbuzz" \
             -DCMAKE_C_COMPILER="$SDK/llvm/bin/clang" \
             -DCMAKE_CXX_COMPILER="$SDK/llvm/bin/clang++" \
             -GNinja
@@ -62,13 +63,8 @@ jobs:
         run: cmake --build build
 
       - name: Run tests
-        if: 0
         shell: bash
-        run: |
-          cd build
-          for test in *-test; do
-            [ -f "$test" ] && echo "Running $test..." && ./"$test"
-          done
+        run: ctest --test-dir build --output-on-failure --no-tests=error
 
       - name: Package
         shell: bash
@@ -92,7 +88,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download OSSIA SDK
         uses: ossia/actions/download-ossia-sdk@master
@@ -112,13 +108,8 @@ jobs:
         run: cmake --build build
 
       - name: Run tests
-        if: 0
         shell: bash
-        run: |
-          cd build
-          for test in *-test; do
-            [ -f "$test" ] && echo "Running $test..." && ./"$test"
-          done
+        run: ctest --test-dir build --output-on-failure --no-tests=error
 
       - name: Package
         shell: bash
@@ -142,7 +133,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Download OSSIA SDK
         uses: ossia/actions/download-ossia-sdk@master
@@ -168,13 +159,10 @@ jobs:
           cmake --build build
 
       - name: Run tests
-        if: 0
         shell: bash
         run: |
-          cd build
-          for test in *-test.exe; do
-            [ -f "$test" ] && echo "Running $test..." && ./"$test"
-          done
+          export PATH="/c/ossia-sdk-x86_64/llvm/bin:$PATH"
+          ctest --test-dir build --output-on-failure --no-tests=error
 
       - name: Package
         shell: bash
