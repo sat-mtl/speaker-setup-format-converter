@@ -49,8 +49,8 @@ std::optional<file> parse(std::string_view input)
 
   std::string cleaned{input};
 
-  // Remove the comments
-  const boost::regex rx(";([[:print:]]| )*\n");
+  // Remove the comments ('\r' is not [[:print:]], so CRLF files need it explicitly)
+  const boost::regex rx(";([[:print:]]| )*\r?\n");
   cleaned = boost::regex_replace(cleaned, rx, "");
 
   auto begin = cleaned.begin();

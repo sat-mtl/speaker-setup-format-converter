@@ -15,12 +15,18 @@
 
 namespace spatparse::csv
 {
+// csv2 trims spaces and tabs by default, which leaves the '\r' of a CRLF file
+// at the end of the last cell of every row.
+using reader = csv2::Reader<
+    csv2::delimiter<','>, csv2::quote_character<'"'>, csv2::first_row_is_header<true>,
+    csv2::trim_policy::trim_characters<' ', '\t', '\r'>>;
+
 std::optional<file> parse(std::string_view input)
 try
 {
   file res;
 
-  csv2::Reader<> r;
+  reader r;
 
   r.parse_view(input);
 
@@ -71,7 +77,7 @@ try
   }
 
   std::string v;
-  for(const csv2::Reader<>::Row& row : r)
+  for(const reader::Row& row : r)
   {
     if(row.length() == 0)
       continue;
