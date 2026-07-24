@@ -162,6 +162,10 @@ add_executable(spat-revolution-test
   tests/test_spat_revolution.cpp
   tests/spat_revolution.ioconfig
 )
+
+add_executable(crlf-test
+  tests/test_crlf.cpp
+)
 target_link_libraries(ease-test PRIVATE speaker-layout-converter-lib)
 target_link_libraries(aiira-test PRIVATE speaker-layout-converter-lib)
 target_link_libraries(spat-test PRIVATE speaker-layout-converter-lib)
@@ -172,6 +176,7 @@ if(TARGET Catch2::Catch2WithMain)
   target_link_libraries(azimuth-test PRIVATE speaker-layout-converter-lib Catch2::Catch2WithMain)
 endif()
 target_link_libraries(spat-revolution-test PRIVATE speaker-layout-converter-lib)
+target_link_libraries(crlf-test PRIVATE speaker-layout-converter-lib)
 
 # spat-revolution-test opens its sample by relative path, the others #embed theirs:
 # run them all from tests/ so the working directory is never a factor.
@@ -183,7 +188,8 @@ foreach(test IN ITEMS
     speakerview-test
     converter-test
     azimuth-test
-    spat-revolution-test)
+    spat-revolution-test
+    crlf-test)
   add_test(NAME ${test} COMMAND ${test} WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests")
 endforeach()
 endif()

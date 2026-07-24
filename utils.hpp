@@ -16,6 +16,15 @@
 namespace spatparse
 {
 
+// Files exported by Windows tools use CRLF: line-oriented parsers split on '\n'
+// and must not keep the '\r', which would otherwise end up inside captures.
+static constexpr std::string_view strip_cr(std::string_view line) noexcept
+{
+  if(line.ends_with('\r'))
+    line.remove_suffix(1);
+  return line;
+}
+
 template <typename T>
 static std::optional<T> parse_strict(std::string_view instance) noexcept
 {
