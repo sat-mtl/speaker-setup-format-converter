@@ -12,7 +12,6 @@ jobs:
   build-linux:
     name: linux-x86_64
     runs-on: [self-hosted, linux, x64, sat-builder]
-    container: ubuntu:noble
     container: almalinux:9
     env:
       SDK: /opt/ossia-sdk-x86_64
