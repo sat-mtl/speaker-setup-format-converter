@@ -416,5 +416,7 @@ void convert(
 
     conf.channels.push_back(ch_out);
   }
+
+  output.configurations.push_back(std::move(conf));
 }
 }
