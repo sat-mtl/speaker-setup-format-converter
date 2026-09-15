@@ -159,7 +159,7 @@ int main(int argc, char** argv)
   args::ArgumentParser parser(
       "Speaker Layout Converter",
       "A tool for converting speaker position file formats.\n"
-      "Example: ./spatparsecli --normalize --in-format=ease --out-format=speakerview "
+      "Example: ./spatparsecli --normalize --in-format=ease --out-format=spatgris "
       "my_file.xld");
   parser.helpParams.width = 120;
   args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
@@ -168,10 +168,10 @@ int main(int argc, char** argv)
   args::Positional<std::string> filename(
       parser, "filename", "File to open", args::Options::Required);
   args::ValueFlag<std::string> in_format(
-      parser, "input file format", "One of xld, ease, csv, spat, aiira, 4dsound, spat_revolution", {"in-format"});
+      parser, "input file format", "One of xld, ease, csv, spat_ircam, iem, 4dsound, spat_revolution, spatgris", {"in-format"});
   args::ValueFlag<std::string> out_format(
       parser, "output file format",
-      "One of xld, ease, csv, spat, aiira, 4dsound, spat_revolution", {"out-format"});
+      "One of xld, ease, csv, spat_ircam, iem, 4dsound, spat_revolution, spatgris", {"out-format"});
 
   args::ValueFlag<double> normalize(
       parser, "normalize", "Rescale all distances to this ratio", {"normalize"}, -1e99);
