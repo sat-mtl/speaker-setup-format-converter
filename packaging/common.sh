@@ -16,7 +16,8 @@ OUT_DIR="${OUT_DIR:-$PKG_ROOT/packages}"
 # The store keys artifacts on major.minor; the full project version goes in the bundle
 # metadata instead.
 if [[ -z "${VERSION:-}" ]]; then
-  _full=$(sed -n 's/^[[:space:]]*VERSION[[:space:]]\+\([0-9][0-9.]*\).*/\1/p' \
+  # POSIX BRE only: \+ is a GNU extension, and macOS ships BSD sed.
+  _full=$(sed -n 's/^[[:space:]]*VERSION[[:space:]][[:space:]]*\([0-9][0-9.]*\).*/\1/p' \
           "$PKG_ROOT/CMakeLists.txt" | head -1)
   [[ -n "$_full" ]] || { echo "cannot read VERSION from CMakeLists.txt" >&2; exit 1; }
   VERSION="${_full%.*}"
