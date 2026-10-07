@@ -64,6 +64,11 @@ while [[ ${#queue[@]} -gt 0 ]]; do
     lower=$(echo "$dll" | tr 'A-Z' 'a-z')
     if [[ -f "$STAGE/$TOPDIR/$dll" ]]; then
       echo "     $dll [bundled]"
+    elif [[ "$lower" == api-ms-win-* || "$lower" == ext-ms-win-* ]]; then
+      # API sets. The api-ms-win-/ext-ms-win- prefixes are reserved by Windows and are
+      # resolved by the loader through the API set schema, so most have no file in
+      # System32 to look for -- api-ms-win-core-winrt-*.dll among them.
+      echo "     $dll [api set]"
     elif compgen -G "$SYS32/$dll" >/dev/null 2>&1 || compgen -G "$SYS32/$lower" >/dev/null 2>&1; then
       echo "     $dll"
     else
