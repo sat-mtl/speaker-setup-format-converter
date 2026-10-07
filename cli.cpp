@@ -28,7 +28,12 @@ static const std::set<std::string> supported_formats{
 
 bool process(const cli_options& opts)
 {
-  std::ifstream in_file(opts.filename);
+  // Binary: in text mode Windows drops the '\r' of every CRLF, so read() stores fewer
+  // bytes than file_size() reported and the tail of the buffer below stays NUL. Those NULs
+  // reach the parsers as trailing garbage -- boost.json rejected it as "extra data",
+  // pugixml as a bad attribute -- which is why iem, 4dsound and spat_revolution files
+  // written on Windows could not be read back there.
+  std::ifstream in_file(opts.filename, std::ios::binary);
   if(!in_file.is_open())
     throw std::runtime_error("Cannot open file!");
 
@@ -47,6 +52,8 @@ bool process(const cli_options& opts)
 
   std::string bytes(size, '\0');
   in_file.read(&bytes[0], size);
+  // The file may also have been truncated between the stat and the read.
+  bytes.resize(in_file.gcount());
 
   spatparse::spatgris::fixup_options out_opts{
       .normalize = opts.normalize, .recenter = opts.recenter};
