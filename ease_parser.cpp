@@ -21,20 +21,33 @@ namespace spatparse::ease
 x3::rule<class file_header_parser, file_header_t> const file_header_parser
     = "file_header_parser";
 
-const auto text_character = ((x3::print - '\"') | x3::char_(' '));
-const auto file_header_parser_def 
-    = "\"FileType\",\"" >> +text_character >> '"'
+// Any byte that is not the closing quote or a line break.
+//
+// x3::print is ASCII-only in the default locale, so a label carrying any non-ASCII byte
+// could not be read back -- and to_string() writes those labels out quite happily, so
+// "Café", "Ж" or "日本" survived the export and died on re-import. A Montreal speaker
+// layout is exactly where accented names show up.
+//
+// lexeme[] is the other half: the x3::ascii::space skipper applies between elements of
+// the sequence, which meant it swallowed the spaces *inside* the quotes and read
+// "SPK 001" back as "SPK001".
+const auto text_character = (x3::char_ - x3::char_("\"\r\n"));
+const auto quoted_text = x3::lexeme[*text_character];
+const auto quoted_text1 = x3::lexeme[+text_character];
+
+const auto file_header_parser_def
+    = "\"FileType\",\"" >> quoted_text1 >> '"'
       >> "\"Format\"," >> x3::double_
-      >> "\"LengthUnit\",\"" >> +text_character >> '"';
+      >> "\"LengthUnit\",\"" >> quoted_text1 >> '"';
 
 x3::rule<class loudspeaker_parser, loudspeaker_t> const loudspeaker_parser
     = "loudspeaker_parser";
 
 const auto loudspeaker_parser_def
-    = "\"Label\",\"" >> *text_character >> x3::lit("\"")
+    = "\"Label\",\"" >> quoted_text >> x3::lit("\"")
       >> "\"Position\"," >> x3::double_ >> ',' >> x3::double_ >> ',' >> x3::double_ 
       >> "\"Ver/Hor/Rot\"," >> x3::double_ >> ',' >> x3::double_ >> ',' >> x3::double_ 
-      >> "\"Speaker\",\"" >> *text_character >> x3::lit("\"") 
+      >> "\"Speaker\",\"" >> quoted_text >> x3::lit("\"") 
       >> "\"Delay/Align\"," >> x3::int_ >> ',' >> x3::int_
       >> "\"dB 1m\"," >> *(x3::int_ % ',')
       >> "\"Watts\"," >> x3::int_
@@ -48,6 +61,11 @@ std::optional<file> parse(std::string_view input)
   file res;
 
   std::string cleaned{input};
+
+  // Editors and Windows exporters put a UTF-8 BOM in front of the first line; it is not
+  // part of the "FileType" literal the header rule expects, so the whole file failed.
+  if(cleaned.starts_with("\xEF\xBB\xBF"))
+    cleaned.erase(0, 3);
 
   // Remove the comments. Matching "anything but a line break" rather than [[:print:]]:
   // the class is ASCII-only in the default locale, so a single accented byte anywhere in a
