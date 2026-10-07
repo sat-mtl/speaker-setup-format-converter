@@ -30,29 +30,62 @@ rmdir "$STAGE/$TOPDIR/bin"
 mv "$STAGE/$TOPDIR/share/doc/$SLUG/README.md" "$STAGE/$TOPDIR/"
 rm -rf "$STAGE/$TOPDIR/share"
 
-step "dependency check"
-# The SDK build links Qt statically, so the only imports should be system DLLs from
-# %WINDIR%. A Qt or libc++ DLL in this list means the zip is missing a file and would
-# fail to start on a clean machine.
+step "dependency closure"
+# Qt is linked statically, but the SDK's clang still links libc++ and libunwind as DLLs,
+# so the zip has to carry them -- without them the .exe does not start on a machine that
+# has no ossia SDK, which is every machine we ship to.
+#
+# "Is this a system DLL" is decided by looking in %WINDIR%\System32 rather than by matching
+# names, so a dependency that appears later cannot pass the check by looking plausible.
+# Anything else is resolved against the toolchain's own bin directories and copied in.
 OBJDUMP="${OBJDUMP:-}"
 if [[ -z "$OBJDUMP" ]]; then
   OBJDUMP=$(command -v llvm-objdump || command -v objdump || true)
 fi
-if [[ -n "$OBJDUMP" ]]; then
-  nonsystem=""
-  for exe in "$STAGE/$TOPDIR/$SLUG.exe" "$STAGE/$TOPDIR/spatparsecli.exe"; do
-    echo "   $(basename "$exe"):"
-    dlls=$("$OBJDUMP" -p "$exe" | sed -n 's/^[[:space:]]*DLL Name: *//p' | sort -u)
-    echo "$dlls" | sed 's/^/     /'
-    hits=$(echo "$dlls" | grep -iE '^(Qt6|libc\+\+|libunwind|zlib|brotli|freetype|harfbuzz)' || true)
-    [[ -z "$hits" ]] || nonsystem="$nonsystem$exe: $hits
-"
-  done
-  [[ -z "$nonsystem" ]] || die "imports libraries that the zip does not ship:
-$nonsystem"
-else
-  echo "   no objdump available: import table NOT checked"
-fi
+[[ -n "$OBJDUMP" ]] || die "no llvm-objdump/objdump on PATH: cannot verify the import table"
+
+SYS32="${SYS32:-/c/Windows/System32}"
+# Where a non-system DLL may legitimately come from. CMAKE_CXX_COMPILER's directory is the
+# SDK's llvm/bin, which is where libc++.dll and libunwind.dll live.
+cxx=$(sed -n 's/^CMAKE_CXX_COMPILER:[^=]*=//p' "$BUILD_DIR/CMakeCache.txt" | head -1)
+SEARCH_DIRS=("$(dirname "$(cygpath -u "$cxx" 2>/dev/null || echo "$cxx")")")
+
+imports() { "$OBJDUMP" -p "$1" | sed -n 's/^[[:space:]]*DLL Name: *//p' | sort -u; }
+
+queue=("$STAGE/$TOPDIR/$SLUG.exe" "$STAGE/$TOPDIR/spatparsecli.exe")
+seen=" "
+missing=""
+bundled=""
+while [[ ${#queue[@]} -gt 0 ]]; do
+  bin="${queue[0]}"; queue=("${queue[@]:1}")
+  echo "   $(basename "$bin"):"
+  while IFS= read -r dll; do
+    [[ -n "$dll" ]] || continue
+    lower=$(echo "$dll" | tr 'A-Z' 'a-z')
+    if [[ -f "$STAGE/$TOPDIR/$dll" ]]; then
+      echo "     $dll [bundled]"
+    elif compgen -G "$SYS32/$dll" >/dev/null 2>&1 || compgen -G "$SYS32/$lower" >/dev/null 2>&1; then
+      echo "     $dll"
+    else
+      found=""
+      for d in "${SEARCH_DIRS[@]}"; do
+        [[ -f "$d/$dll" ]] && { found="$d/$dll"; break; }
+      done
+      if [[ -n "$found" ]]; then
+        cp "$found" "$STAGE/$TOPDIR/$dll"
+        bundled="$bundled $dll"
+        echo "     $dll -> bundled from $(dirname "$found")"
+        # Its own imports have to be satisfied too.
+        [[ "$seen" == *" $lower "* ]] || { seen="$seen$lower "; queue+=("$STAGE/$TOPDIR/$dll"); }
+      else
+        echo "     $dll [MISSING]"
+        missing="$missing $dll"
+      fi
+    fi
+  done < <(imports "$bin")
+done
+[[ -z "$missing" ]] || die "imports DLLs that are neither in System32 nor in the toolchain:$missing"
+echo "   bundled runtime:${bundled:- none}"
 
 step "zip"
 # cmake -E tar, not zip/7z: cmake is the one tool guaranteed present on a build host.
