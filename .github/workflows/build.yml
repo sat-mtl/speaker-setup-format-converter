@@ -68,10 +68,10 @@ jobs:
 
       - name: Package
         shell: bash
-        run: |
-          mkdir -p packages
-          cp build/spatparsecli packages/
-          cp build/speaker-layout-converter packages/
+        # No FUSE in the container, so appimagetool has to unpack itself to run.
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: 1
+        run: packaging/build-appimage.sh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -111,12 +111,36 @@ jobs:
         shell: bash
         run: ctest --test-dir build --output-on-failure --no-tests=error
 
-      - name: Package
+      - name: Import signing certificate
+        env:
+          MAC_CERTIFICATE: ${{ secrets.MAC_CERTIFICATE }}
+          MAC_CERTIFICATE_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
         shell: bash
         run: |
-          mkdir -p packages
-          cp build/spatparsecli packages/
-          cp -r build/speaker-layout-converter.app packages/ 2>/dev/null || cp build/speaker-layout-converter packages/
+          # Guarded in the shell rather than with `if:`: a step's own env is not in scope
+          # for its if-expression. On a fork or a secretless run this is a no-op and
+          # build-macos-dmg.sh then produces an unsigned .dmg and says so, rather than
+          # failing the whole matrix.
+          if [[ -z "$MAC_CERTIFICATE" ]]; then
+            echo "no MAC_CERTIFICATE secret: skipping, the .dmg will be unsigned"
+            exit 0
+          fi
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          security create-keychain -p "" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "" "$KEYCHAIN"
+          echo "$MAC_CERTIFICATE" | base64 --decode > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" \
+            -P "$MAC_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "" "$KEYCHAIN"
+          security list-keychains -d user -s "$KEYCHAIN" login.keychain
+          rm -f "$RUNNER_TEMP/cert.p12"
+
+      - name: Package
+        shell: bash
+        env:
+          MAC_CODESIGN_IDENTITY: ${{ secrets.MAC_CODESIGN_IDENTITY }}
+        run: packaging/build-macos-dmg.sh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -167,9 +191,8 @@ jobs:
       - name: Package
         shell: bash
         run: |
-          mkdir -p packages
-          cp build/spatparsecli.exe packages/
-          cp build/speaker-layout-converter.exe packages/
+          export PATH="/c/ossia-sdk-x86_64/llvm/bin:$PATH"
+          packaging/build-windows-zip.sh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

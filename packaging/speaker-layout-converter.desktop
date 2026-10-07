@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Speaker Layout Converter
+GenericName=Speaker Layout Converter
+Comment=Convert loudspeaker layouts between spatialization tools
+Exec=speaker-layout-converter %f
+Icon=speaker-layout-converter
+Terminal=false
+Categories=AudioVideo;Audio;Utility;
+Keywords=speaker;loudspeaker;layout;spatial;spatgris;ease;ambisonics;
+MimeType=application/xml;text/csv;

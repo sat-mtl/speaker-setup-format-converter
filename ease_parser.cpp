@@ -49,8 +49,12 @@ std::optional<file> parse(std::string_view input)
 
   std::string cleaned{input};
 
-  // Remove the comments ('\r' is not [[:print:]], so CRLF files need it explicitly)
-  const boost::regex rx(";([[:print:]]| )*\r?\n");
+  // Remove the comments. Matching "anything but a line break" rather than [[:print:]]:
+  // the class is ASCII-only in the default locale, so a single accented byte anywhere in a
+  // comment left the whole line in place and the header parse below then failed. Real EASE
+  // exports hit this -- SAT's own carry "Société des arts technologiques" in line 1, and
+  // so does what to_string() writes below, which is why ease could not round-trip.
+  const boost::regex rx(";[^\r\n]*\r?\n");
   cleaned = boost::regex_replace(cleaned, rx, "");
 
   auto begin = cleaned.begin();

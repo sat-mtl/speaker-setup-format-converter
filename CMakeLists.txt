@@ -211,9 +211,18 @@ qt_add_executable(speaker-layout-converter
   mainwindow.hpp
 )
 
-find_library(BROTLICOMMON_LIBRARY NAMES brotlicommon brotlicommon-static)
-find_library(BROTLIDEC_LIBRARY NAMES brotlidec brotlidec-static)
-find_library(BROTLIENC_LIBRARY NAMES brotlienc brotlienc-static)
+# brotli comes in only as a transitive dependency of the SDK's freetype (WOFF2 support),
+# so it must be taken from the same prefix as the rest of the toolchain. Searching the
+# system paths as well is how the macOS bundle ended up with ten absolute
+# /opt/homebrew/opt/... load commands: Homebrew brotli is a dylib, and a Mac without
+# Homebrew then cannot launch the app. NO_CMAKE_SYSTEM_PATH/NO_SYSTEM_ENVIRONMENT_PATH
+# keep the search inside CMAKE_PREFIX_PATH, which is where the SDK lives on all three
+# platforms; when the SDK's freetype needs no brotli the variables stay unset and nothing
+# is linked.
+set(_brotli_scope NO_CMAKE_SYSTEM_PATH NO_SYSTEM_ENVIRONMENT_PATH)
+find_library(BROTLICOMMON_LIBRARY NAMES brotlicommon brotlicommon-static ${_brotli_scope})
+find_library(BROTLIDEC_LIBRARY NAMES brotlidec brotlidec-static ${_brotli_scope})
+find_library(BROTLIENC_LIBRARY NAMES brotlienc brotlienc-static ${_brotli_scope})
 
 target_link_libraries(speaker-layout-converter PRIVATE
   speaker-layout-converter-lib
@@ -232,7 +241,42 @@ endif()
 set_target_properties(speaker-layout-converter PROPERTIES
   WIN32_EXECUTABLE TRUE
   MACOSX_BUNDLE TRUE
+  MACOSX_BUNDLE_BUNDLE_NAME "Speaker Layout Converter"
+  MACOSX_BUNDLE_GUI_IDENTIFIER "ca.qc.sat.speaker-layout-converter"
+  MACOSX_BUNDLE_BUNDLE_VERSION "${PROJECT_VERSION}"
+  MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
+  MACOSX_BUNDLE_LONG_VERSION_STRING "${PROJECT_VERSION}"
+  MACOSX_BUNDLE_COPYRIGHT "Societe des Arts Technologiques"
+  MACOSX_BUNDLE_INFO_STRING "${PROJECT_DESCRIPTION}"
+  MACOSX_BUNDLE_ICON_FILE "speaker-layout-converter.icns"
 )
+
+if(APPLE)
+  # Finder labels a bundle by its directory name, so the display name has to be the
+  # target's output name -- same as "ossia score.app" and "Domeport Pro.app".
+  set_target_properties(speaker-layout-converter PROPERTIES
+    OUTPUT_NAME "Speaker Layout Converter")
+
+  # The .icns has to be inside the bundle for CFBundleIconFile to resolve.
+  target_sources(speaker-layout-converter PRIVATE packaging/speaker-layout-converter.icns)
+  set_source_files_properties(packaging/speaker-layout-converter.icns PROPERTIES
+    MACOSX_PACKAGE_LOCATION Resources)
+endif()
+
+if(WIN32)
+  # llvm-rc / windres is what the ossia SDK toolchain ships; without a working RC
+  # compiler the icon and the version block are simply left out rather than failing
+  # the build.
+  include(CheckLanguage)
+  check_language(RC)
+  if(CMAKE_RC_COMPILER)
+    enable_language(RC)
+    configure_file(packaging/speaker-layout-converter.rc.in
+      "${CMAKE_CURRENT_BINARY_DIR}/speaker-layout-converter.rc" @ONLY)
+    target_sources(speaker-layout-converter PRIVATE
+      "${CMAKE_CURRENT_BINARY_DIR}/speaker-layout-converter.rc")
+  endif()
+endif()
 
 qt_add_resources(speaker-layout-converter "fonts"
   PREFIX "/fonts"
@@ -241,4 +285,31 @@ qt_add_resources(speaker-layout-converter "fonts"
     resources/DMSans-VariableFont_opsz,wght.ttf
     resources/DMSans-Italic-VariableFont_opsz,wght.ttf
 )
+# Install tree, shared by the three packaging scripts in packaging/. On Linux it is also
+# the AppDir layout appimagetool expects, which is why the icon and the .desktop entry are
+# installed rather than copied by the script.
+include(GNUInstallDirs)
+
+install(TARGETS spatparsecli
+  RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+
+if(APPLE)
+  install(TARGETS speaker-layout-converter BUNDLE DESTINATION .)
+else()
+  install(TARGETS speaker-layout-converter
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+endif()
+
+install(FILES README
+  DESTINATION "${CMAKE_INSTALL_DOCDIR}" RENAME README.md)
+
+if(NOT APPLE AND NOT WIN32)
+  install(FILES packaging/speaker-layout-converter.desktop
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/applications")
+  install(FILES packaging/speaker-layout-converter.png
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/256x256/apps")
+  install(FILES packaging/speaker-layout-converter.svg
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps")
+endif()
+
 qt_finalize_project()
