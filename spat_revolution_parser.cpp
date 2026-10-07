@@ -112,12 +112,17 @@ std::string to_string(const file& f)
           "    {{\n"
           "      \"Name\": \"{}\",\n"
           "      \"Type\": \"{}\",\n"
-          "      \"Azimuth\": {:.1f},\n"
-          "      \"Elevation\": {:.1f},\n"
-          "      \"Distance\": {:.1f},\n"
-          "      \"Yaw\": {:.1f},\n"
-          "      \"Pitch\": {:.1f},\n"
-          "      \"Roll\": {:.1f},\n"
+          // 6 decimals, not 1. The positions are stored as a direction plus a radius, so
+          // rounding the angles to 0.1 degree moved a speaker by radius*1.7e-3 -- half a
+          // metre on a 300 m layout -- and rounding Distance to 0.1 quantised a room
+          // measured in metres to 10 cm. Flux's own files carry up to 14 decimals here,
+          // so this was our loss, not the format's.
+          "      \"Azimuth\": {:.6f},\n"
+          "      \"Elevation\": {:.6f},\n"
+          "      \"Distance\": {:.6f},\n"
+          "      \"Yaw\": {:.6f},\n"
+          "      \"Pitch\": {:.6f},\n"
+          "      \"Roll\": {:.6f},\n"
           "      \"Index\": {},\n"
           "      \"ConnectionIndex\": {},\n"
           "      \"Options\": {}\n"

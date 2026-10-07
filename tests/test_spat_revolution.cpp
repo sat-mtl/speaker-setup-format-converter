@@ -5,6 +5,10 @@
 #include <iostream>
 #include <fstream>
 
+#include <algorithm>
+#include <array>
+#include <cmath>
+
 int main()
 {
   // Make sure numbers are parsed with dots
@@ -64,6 +68,55 @@ int main()
         std::cout << "  Distance: " << last.distance << "m" << std::endl;
       }
     }
+    // Positions have to survive being written out. The writer used {:.1f}, so an angle
+    // was quantised to 0.1 degree -- radius*1.7e-3 of displacement, half a metre on a
+    // 300 m layout -- and Distance to 10 cm. Flux's own files carry up to 14 decimals, so
+    // nothing about the format required that.
+    {
+      spatparse::spat_revolution::file f;
+      spatparse::spat_revolution::configuration conf;
+      for(auto [az, el, d] : {std::array{12.345678, 7.654321, 2.718282},
+                              std::array{-123.456789, -45.678901, 314.159265},
+                              std::array{0.049999, 0.049999, 0.949999}})
+      {
+        spatparse::spat_revolution::channel ch;
+        ch.name = "spk";
+        ch.azimuth = az;
+        ch.elevation = el;
+        ch.distance = d;
+        conf.channels.push_back(ch);
+      }
+      f.configurations.push_back(conf);
+
+      const auto back = spatparse::spat_revolution::parse(
+          spatparse::spat_revolution::to_string(f));
+      if(!back || back->configurations.empty())
+      {
+        std::cerr << "precision: the file we just wrote does not parse\n";
+        return 1;
+      }
+      const auto& in = f.configurations[0].channels;
+      const auto& out = back->configurations[0].channels;
+      if(in.size() != out.size())
+      {
+        std::cerr << "precision: " << out.size() << " channels, expected " << in.size()
+                  << "\n";
+        return 1;
+      }
+      for(std::size_t i = 0; i < in.size(); i++)
+      {
+        const double e = std::max({std::abs(in[i].azimuth - out[i].azimuth),
+                                   std::abs(in[i].elevation - out[i].elevation),
+                                   std::abs(in[i].distance - out[i].distance)});
+        if(e > 1e-5)
+        {
+          std::cerr << "precision: channel " << i << " moved by " << e
+                    << " through the writer\n";
+          return 1;
+        }
+      }
+    }
+
     return 0;
   }
   catch(const std::exception& e)
