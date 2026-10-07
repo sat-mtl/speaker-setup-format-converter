@@ -68,6 +68,20 @@ done
 [[ -z "$bad" ]] || die "load commands resolve outside the system prefix:
 $bad"
 
+step "deployment target"
+# Same class of defect as the load commands above, and just as invisible on the machine that
+# built it: with CMAKE_OSX_DEPLOYMENT_TARGET unset the binaries are stamped with the build
+# host's OS version and refuse to launch on anything older. Checked against what CMake was
+# actually told rather than a constant, so the two cannot drift apart.
+want=$(sed -n 's/^CMAKE_OSX_DEPLOYMENT_TARGET:[^=]*=//p' "$BUILD_DIR/CMakeCache.txt" | head -1)
+[[ -n "$want" ]] || die "CMAKE_OSX_DEPLOYMENT_TARGET is not set in $BUILD_DIR"
+for b in "${BINARIES[@]}"; do
+  got=$(otool -l "$b" | awk '/LC_BUILD_VERSION/,/^$/' | awk '$1=="minos"{print $2; exit}')
+  echo "   ${b#$APP/}: minos $got"
+  [[ "$got" == "$want" || "$got" == "$want."* ]] \
+    || die "${b#$APP/} is built for macOS $got, not the requested $want"
+done
+
 if [[ -n "$IDENTITY" ]]; then
   step "codesign"
   # Inside out: the bundle seal covers the nested binaries, so re-signing a nested binary

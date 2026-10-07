@@ -32,7 +32,8 @@ jobs:
             vulkan vulkan-devel xcb-util-wm xcb-util-wm-devel libxkbcommon-devel libXcomposite-devel xcb-util-keysyms-devel \
             libv4l-devel xcb-util-cursor-devel pulseaudio-libs-devel \
             rsync bluez-libs-devel avahi-devel wayland-devel wayland-protocols-devel libwayland-egl libwayland-cursor libwayland-client \
-            ninja-build libxkbfile-devel xorg-x11-proto-devel bzip2 systemd-devel systemd-udev mesa-libgbm-devel
+            ninja-build libxkbfile-devel xorg-x11-proto-devel bzip2 systemd-devel systemd-udev mesa-libgbm-devel \
+            file
           yum clean all
 
       - name: Checkout repository

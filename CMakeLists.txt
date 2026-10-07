@@ -1,4 +1,15 @@
 cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
+
+# Must be set before project(): CMake reads it while probing the compiler.
+# Left unset, it defaults to whatever the build machine runs, which stamps the binaries
+# with that version as their minimum -- a build on macOS 26 produced "minos 26.0" and
+# refused to launch on anything older, which is every Mac we ship to. 12.0 is what the
+# SDK's own Qt is built against (qt6-static/mkspecs/qconfig.pri:
+# QMAKE_MACOSX_DEPLOYMENT_TARGET = 12.0), so it is the floor the toolchain supports.
+if(APPLE AND NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "Minimum macOS version")
+endif()
+
 project(speaker-layout-converter
   VERSION 1.0.0
   DESCRIPTION "Speaker Layout Converter: convert loudspeaker layouts between spatialization tools (SpatGRIS, IEM, IRCAM Spat, EASE, 4DSOUND, Spat Revolution, CSV)"
