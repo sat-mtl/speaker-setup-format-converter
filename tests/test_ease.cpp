@@ -63,5 +63,54 @@ int main()
     return 1;
   }
 
+  // Labels are not ASCII and not space-free. x3::print rejected every non-ASCII byte, and
+  // without lexeme[] the skipper ate the spaces between the quotes, so a layout exported
+  // with French or spaced speaker names could not be read back -- the export succeeded,
+  // which is what made it quiet. Built from the parsed sample so every numeric field holds
+  // something a writer would really emit; only the labels are swapped.
+  {
+    static const char* const labels[]
+        = {"Caf\u00e9", "SPK 001", "\u0416", "\u65e5\u672c", "A B  C"};
+    constexpr std::size_t n = std::size(labels);
+
+    auto f = file;
+    f.loudspeakers.resize(n, file.loudspeakers.front());
+    for(std::size_t i = 0; i < n; i++)
+    {
+      f.loudspeakers[i].label = labels[i];
+      f.loudspeakers[i].speaker = labels[i];
+    }
+
+    const auto text = spatparse::ease::to_string(f);
+    const auto back = spatparse::ease::parse(text);
+    if(!back)
+    {
+      std::cerr << "unicode/spaced labels: the file we just wrote does not parse\n";
+      return 1;
+    }
+    if(back->loudspeakers.size() != n)
+    {
+      std::cerr << "unicode/spaced labels: " << back->loudspeakers.size()
+                << " speakers, expected " << n << "\n";
+      return 1;
+    }
+    for(std::size_t i = 0; i < n; i++)
+    {
+      if(back->loudspeakers[i].label != labels[i])
+      {
+        std::cerr << "unicode/spaced labels: wrote '" << labels[i] << "' read back '"
+                  << back->loudspeakers[i].label << "'\n";
+        return 1;
+      }
+    }
+
+    // Windows exporters and most editors prepend a UTF-8 BOM.
+    if(!spatparse::ease::parse("\xEF\xBB\xBF" + text))
+    {
+      std::cerr << "a leading UTF-8 BOM makes the file unparseable\n";
+      return 1;
+    }
+  }
+
   return 0;
 }
