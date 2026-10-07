@@ -8,13 +8,15 @@
 //////////////////////////////
 namespace spatparse::csv
 {
+// Initialized: the parser fills these column by column, so a row that is missing one
+// would otherwise read back whatever the previous row left on the stack.
 struct xyz_position
 {
-  double x, y, z;
+  double x{}, y{}, z{};
 };
 struct aed_position
 {
-  double a, e, d;
+  double a{}, e{}, d{};
 };
 
 struct loudspeaker

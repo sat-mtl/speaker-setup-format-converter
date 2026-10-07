@@ -144,6 +144,31 @@ int main()
     }
   }
 
+  // A trailing blank line must not become a speaker. The tool's own CSV output ends with
+  // one, so on Windows -- where it is "\r\n\r\n" and the final row holds the '\r' rather
+  // than being empty -- every round-trip through csv used to gain a phantom speaker that
+  // carried the previous row's coordinates and an empty name.
+  for(const auto& [what, text] :
+      {std::pair{"lf", "names,x,y,z\n1,1,2,3\n2,4,5,6\n\n"},
+       std::pair{"crlf", "names,x,y,z\r\n1,1,2,3\r\n2,4,5,6\r\n\r\n"}})
+  {
+    const auto res = spatparse::csv::parse(text);
+    if(!res)
+    {
+      std::cerr << "csv trailing blank line (" << what << "): does not parse\n";
+      failures++;
+      continue;
+    }
+    if(res->speakers.size() != 2)
+    {
+      std::cerr << "csv trailing blank line (" << what << "): " << res->speakers.size()
+                << " speakers, expected 2\n";
+      for(const auto& sp : res->speakers)
+        std::cerr << "    '" << sp.name << "'\n";
+      failures++;
+    }
+  }
+
   // A speaker index far past anything reasonable must be rejected, not
   // turned into an allocation of that size
   const auto hostile = spatparse::spat::parse(

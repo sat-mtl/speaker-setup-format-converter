@@ -81,6 +81,26 @@ try
   {
     if(row.length() == 0)
       continue;
+
+    // A file ending in CRLF leaves a final row holding just the '\r'. Its length is 1, so
+    // the test above lets it through, and it became a speaker with an empty name carrying
+    // the previous row's coordinates -- every CRLF layout gained one phantom speaker, and
+    // the tool's own CSV output is CRLF on Windows. Checking the trimmed cells instead
+    // catches a blank line whatever its line ending.
+    bool blank = true;
+    for(const auto& cell : row)
+    {
+      v.clear();
+      cell.read_value(v);
+      if(!v.empty())
+      {
+        blank = false;
+        break;
+      }
+    }
+    if(blank)
+      continue;
+
     loudspeaker sp;
 
     int column = 0;
