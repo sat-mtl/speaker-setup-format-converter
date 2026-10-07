@@ -6,6 +6,10 @@
 # supabase/migrations/20260729000001_multiarch_platforms.sql.
 
 SLUG=speaker-layout-converter
+# Must match SLC_COMPONENT in CMakeLists.txt: installing the whole project would also
+# pull in the FetchContent dependencies' own install rules (ctre/pugixml headers, a
+# static lib, pkgconfig and CMake package files).
+COMPONENT=speaker-layout-converter
 APP_DISPLAY_NAME="Speaker Layout Converter"
 BUNDLE_ID=ca.qc.sat.speaker-layout-converter
 
