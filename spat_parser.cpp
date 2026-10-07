@@ -42,7 +42,14 @@ try
   for(const auto word : std::views::split(input, '\n'))
   {
     std::string_view line = strip_cr(std::string_view{word});
-    if(line.ends_with('\\') || line.ends_with('}'))
+    // The last line carries both: to_string() keeps every line's '\' continuation and
+    // then replaces the final newline with '}', so the file ends "...\"Last\"\}".
+    // Stripping a single character left a trailing '\' inside the quoted value, which the
+    // name pattern below then refused -- the last speaker lost its name on every
+    // round-trip, and only the last one, which is why it read as cosmetic.
+    if(line.ends_with('}'))
+      line = line.substr(0, line.size() - 1);
+    if(line.ends_with('\\'))
       line = line.substr(0, line.size() - 1);
 
     if(auto m = ctre::match<"/speaker/number (.*)">(line))
