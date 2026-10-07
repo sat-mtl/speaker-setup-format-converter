@@ -21,7 +21,7 @@ mkdir -p "$OUT_DIR"
 step "install tree -> $STAGE/$TOPDIR"
 rm -rf "$STAGE"
 mkdir -p "$STAGE/$TOPDIR"
-cmake --install "$BUILD_DIR" --prefix "$STAGE/$TOPDIR" >/dev/null
+cmake --install "$BUILD_DIR" --component "$COMPONENT" --prefix "$STAGE/$TOPDIR" >/dev/null
 
 # Flatten: a zip the user unpacks and double-clicks should not bury the .exe under bin/.
 mv "$STAGE/$TOPDIR/bin/$SLUG.exe" "$STAGE/$TOPDIR/"

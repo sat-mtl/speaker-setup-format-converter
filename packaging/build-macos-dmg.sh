@@ -32,7 +32,7 @@ mkdir -p "$OUT_DIR"
 step "install tree -> $STAGE"
 rm -rf "$STAGE"
 mkdir -p "$STAGE"
-cmake --install "$BUILD_DIR" --prefix "$STAGE" >/dev/null
+cmake --install "$BUILD_DIR" --component "$COMPONENT" --prefix "$STAGE" >/dev/null
 [[ -d "$APP" ]] || die "$APP_NAME missing from the install tree"
 
 # One artifact carries both halves of the tool. Apple's layout for a helper executable that

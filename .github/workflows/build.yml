@@ -96,11 +96,27 @@ jobs:
       - name: Configure
         shell: bash
         run: |
+          # The aarch64 SDK keeps freetype/harfbuzz in their own top-level prefixes and
+          # the image codecs in $SDK/lib, not under a sysroot/ as the x86_64 one does.
+          # Both spellings are listed because a missing prefix is simply ignored.
+          #
+          # CMAKE_IGNORE_PREFIX_PATH is the load-bearing part: /opt/homebrew is a default
+          # search prefix on arm64 macOS, so every codec Qt wants that the prefix path does
+          # not resolve silently binds to a Homebrew dylib. That is how the .app ended up
+          # with absolute load commands into /opt/homebrew/opt/{freetype,harfbuzz,webp,
+          # jpeg-turbo} and could not launch on a Mac without Homebrew. Boost is the one
+          # exception: it is header-only here, so taking its headers from Homebrew when the
+          # SDK has none adds nothing to the link.
+          BOOST_INC="$SDK/boost/include"
+          [[ -d "$BOOST_INC" ]] || BOOST_INC=/opt/homebrew/opt/boost/include
+
           cmake -S . -B build \
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_TESTING=ON \
-            -DBOOST_ROOT=$SDK/boost/include \
-            -DCMAKE_PREFIX_PATH="$SDK/qt6-static;$SDK/sysroot;$SDK/sysroot/lib/cmake/freetype;$SDK/sysroot/lib/cmake/harfbuzz" \
+            -DBOOST_ROOT="$BOOST_INC" \
+            -DCMAKE_PREFIX_PATH="$SDK/qt6-static;$SDK;$SDK/freetype;$SDK/harfbuzz;$SDK/sysroot;$SDK/sysroot/lib/cmake/freetype;$SDK/sysroot/lib/cmake/harfbuzz" \
+            -DCMAKE_IGNORE_PREFIX_PATH="/opt/homebrew;/usr/local" \
+            -DCMAKE_FIND_FRAMEWORK=LAST \
             -GNinja
 
       - name: Build

@@ -18,7 +18,7 @@ mkdir -p "$OUT_DIR"
 
 step "install tree -> $APPDIR"
 rm -rf "$APPDIR"
-cmake --install "$BUILD_DIR" --prefix "$APPDIR/usr" >/dev/null
+cmake --install "$BUILD_DIR" --component "$COMPONENT" --prefix "$APPDIR/usr" >/dev/null
 [[ -x "$APPDIR/usr/bin/$SLUG" ]] || die "$SLUG missing from the install tree"
 [[ -x "$APPDIR/usr/bin/spatparsecli" ]] || die "spatparsecli missing from the install tree"
 

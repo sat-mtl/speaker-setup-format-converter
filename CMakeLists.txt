@@ -294,26 +294,38 @@ qt_add_resources(speaker-layout-converter "fonts"
 # installed rather than copied by the script.
 include(GNUInstallDirs)
 
+# Everything here goes in one component, and the packaging scripts install that component
+# rather than the whole project: ctre and pugixml come in through FetchContent with their
+# own install rules, so a plain `cmake --install` also drops their headers, libpugixml.a
+# and the pkgconfig/cmake package files into the prefix. Those are SDK artifacts for
+# someone building against the libraries, and they were ending up in the .dmg next to
+# the .app.
+set(SLC_COMPONENT speaker-layout-converter)
+
 install(TARGETS spatparsecli
-  RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+  RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT "${SLC_COMPONENT}")
 
 if(APPLE)
-  install(TARGETS speaker-layout-converter BUNDLE DESTINATION .)
+  install(TARGETS speaker-layout-converter
+    BUNDLE DESTINATION . COMPONENT "${SLC_COMPONENT}")
 else()
   install(TARGETS speaker-layout-converter
-    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}")
+    RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT "${SLC_COMPONENT}")
 endif()
 
 install(FILES README
-  DESTINATION "${CMAKE_INSTALL_DOCDIR}" RENAME README.md)
+  DESTINATION "${CMAKE_INSTALL_DOCDIR}" RENAME README.md
+  COMPONENT "${SLC_COMPONENT}")
 
 if(NOT APPLE AND NOT WIN32)
   install(FILES packaging/speaker-layout-converter.desktop
-    DESTINATION "${CMAKE_INSTALL_DATADIR}/applications")
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/applications" COMPONENT "${SLC_COMPONENT}")
   install(FILES packaging/speaker-layout-converter.png
-    DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/256x256/apps")
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/256x256/apps"
+    COMPONENT "${SLC_COMPONENT}")
   install(FILES packaging/speaker-layout-converter.svg
-    DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps")
+    DESTINATION "${CMAKE_INSTALL_DATADIR}/icons/hicolor/scalable/apps"
+    COMPONENT "${SLC_COMPONENT}")
 endif()
 
 qt_finalize_project()
