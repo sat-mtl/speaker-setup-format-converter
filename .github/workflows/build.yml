@@ -108,6 +108,11 @@ jobs:
           # jpeg-turbo} and could not launch on a Mac without Homebrew. Boost is the one
           # exception: it is header-only here, so taking its headers from Homebrew when the
           # SDK has none adds nothing to the link.
+          #
+          # In CI the SDK does have boost -- fetch-sdk.sh unpacks 1.90 into boost/include --
+          # so the fallback below is for hand-installed SDKs that were assembled without it,
+          # which is how the build machines here are set up. Keep that in mind when a result
+          # is reproduced locally: those builds use a different boost from the one we ship.
           BOOST_INC="$SDK/boost/include"
           [[ -d "$BOOST_INC" ]] || BOOST_INC=/opt/homebrew/opt/boost/include
 
