@@ -7,6 +7,7 @@
 #include <pugixml.hpp>
 
 #include <charconv>
+#include <cmath>
 #include <format>
 #include <iostream>
 #include <random>
@@ -230,12 +231,17 @@ void fixup(file& f, fixup_options opts)
     if(sp.name.empty())
       sp.name = std::format("missing_{}", missing_idx++);
 
+    // Snap near-zero coordinates to exactly zero. std::abs is load-bearing: a bare
+    // `sp.x < epsilon` also matched every *negative* coordinate, so every speaker on the
+    // -X/-Y/-Z side of the origin was moved onto it -- 68 of the 135 speakers in
+    // tests/csv_sample.csv came out at (0,0,0). Gain keeps the one-sided test: it is a
+    // linear factor, so clamping anything below epsilon to 0 is the intent there.
     static constexpr auto epsilon = 1e-7;
-    if(sp.x < epsilon)
+    if(std::abs(sp.x) < epsilon)
       sp.x = 0.;
-    if(sp.y < epsilon)
+    if(std::abs(sp.y) < epsilon)
       sp.y = 0.;
-    if(sp.z < epsilon)
+    if(std::abs(sp.z) < epsilon)
       sp.z = 0.;
     if(sp.gain < epsilon)
       sp.gain = 0.;

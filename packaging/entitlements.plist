@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <!-- Subset of the entitlements score's tools/create-app-macos.sh grants. This app is a
+         statically linked Qt Widgets binary: it loads no external plug-in, generates no code
+         and opens no socket, so allow-jit, allow-unsigned-executable-memory,
+         disable-library-validation and the network/device keys are all omitted. What is left
+         is what the converter actually does: read a layout the user picked, write one back. -->
+    <key>com.apple.security.app-sandbox</key>
+    <false/>
+    <key>com.apple.security.files.user-selected.read-write</key>
+    <true/>
+  </dict>
+</plist>

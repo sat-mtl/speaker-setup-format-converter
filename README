@@ -56,6 +56,35 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
 
+## Packaging
+
+Each platform gets the delivery format it expects, built from the same `cmake --install` tree by
+one script per platform in `packaging/`. Artifacts are named
+`speaker-layout-converter-<version>-<platform>-<arch>.<ext>` and land in `packages/`.
+
+| Platform | Script | Artifact |
+|---|---|---|
+| Linux | `packaging/build-appimage.sh` | `…-linux-x86_64.AppImage` |
+| macOS | `packaging/build-macos-dmg.sh` | `…-macos-arm64.dmg` holding `Speaker Layout Converter.app` |
+| Windows | `packaging/build-windows-zip.sh` | `…-windows-x86_64.zip` |
+
+Each artifact carries both the GUI and the CLI. In the AppImage, `spatparsecli` is reached with
+`--cli` (or by naming the symlink `spatparsecli`); in the `.app` it is
+`Contents/MacOS/spatparsecli`; in the zip it sits next to the GUI executable.
+
+All three scripts refuse to package a build whose binaries resolve libraries outside the system
+prefix, so a tree that would only run on the machine that built it fails the build instead of
+shipping.
+
+### macOS signing
+
+`build-macos-dmg.sh` signs when `MAC_CODESIGN_IDENTITY` is set and notarizes when
+`NOTARY_PROFILE` is also set, following the same invocation as score's
+`ci/osx.package.deploy.sh`: every Mach-O in the bundle is signed inside out with
+`--options=runtime --timestamp`, then the bundle itself with
+`packaging/entitlements.plist`, then the `.dmg`. Without those variables it produces an
+unsigned artifact and says so rather than looking like it signed one.
+
 ## Status
 
 Early stage, single maintainer. No versioned release yet — builds are published as CI artifacts.
