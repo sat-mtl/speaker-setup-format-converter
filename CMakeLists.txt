@@ -195,6 +195,15 @@ target_link_libraries(crlf-test PRIVATE speaker-layout-converter-lib)
 
 # spat-revolution-test opens its sample by relative path, the others #embed theirs:
 # run them all from tests/ so the working directory is never a factor.
+# Exercises the CLI executable's own file reading rather than the library's parsers: on
+# Windows a CRLF file opened in text mode yields fewer bytes than file_size() reported and
+# the tail of the buffer stays NUL, which every parser rejects as trailing garbage. The
+# library never sees that, so only a test that goes through the binary can catch it. On
+# Linux and macOS text and binary mode are the same thing and this simply passes.
+add_test(NAME cli-crlf COMMAND spatparsecli
+  --in-format=iem --out-format=csv
+  "${CMAKE_CURRENT_SOURCE_DIR}/tests/aiira_sample_crlf.json")
+
 foreach(test IN ITEMS
     ease-test
     aiira-test
