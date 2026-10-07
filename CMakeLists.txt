@@ -1,13 +1,19 @@
 cmake_minimum_required(VERSION 3.25 FATAL_ERROR)
 
 # Must be set before project(): CMake reads it while probing the compiler.
-# Left unset, it defaults to whatever the build machine runs, which stamps the binaries
-# with that version as their minimum -- a build on macOS 26 produced "minos 26.0" and
-# refused to launch on anything older, which is every Mac we ship to. 12.0 is what the
-# SDK's own Qt is built against (qt6-static/mkspecs/qconfig.pri:
-# QMAKE_MACOSX_DEPLOYMENT_TARGET = 12.0), so it is the floor the toolchain supports.
+#
+# Left unset it defaults to whatever the build machine runs, which stamps the binaries with
+# that version as their minimum -- a build on macOS 26 produced "minos 26.0" and refused to
+# launch on anything older, which is very nearly every Mac we ship to.
+#
+# 13.3 and not the 12.0 the SDK's Qt targets (qt6-static/mkspecs/qconfig.pri). The parsers
+# format doubles with std::format, which goes through std::to_chars, and Apple's libc++ marks
+# that availability-gated to macOS 13.3:
+#   formatter_floating_point.h:61: error: 'to_chars' is unavailable: introduced in macOS 13.3
+# So 13.3 is the real floor for this code on the system libc++, and claiming 12.0 would only
+# move the failure from the build to the user's machine.
 if(APPLE AND NOT DEFINED CMAKE_OSX_DEPLOYMENT_TARGET)
-  set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "Minimum macOS version")
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "13.3" CACHE STRING "Minimum macOS version")
 endif()
 
 project(speaker-layout-converter
