@@ -26,9 +26,13 @@ FetchContent_MakeAvailable(Catch2)
 list(APPEND CMAKE_MODULE_PATH "${Catch2_SOURCE_DIR}/extras")
 endif()
 
+# No GIT_SHALLOW here, unlike the entries above: this is the one dependency pinned to a
+# raw commit rather than a tag, and a shallow clone is `clone --depth 1 --branch <GIT_TAG>`,
+# which only resolves branch and tag names. Configuring from an empty build directory
+# therefore failed on every platform with "Remote branch 4f3c41db... not found in upstream
+# origin"; it only looked healthy where _deps was already populated.
 FetchContent_Declare(
   csv2
-  GIT_SHALLOW    TRUE
   GIT_REPOSITORY https://github.com/p-ranav/csv2.git
   GIT_TAG        4f3c41db6457465e94b92b91fc560b911c16a16a
 )
