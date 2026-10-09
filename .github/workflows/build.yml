@@ -11,7 +11,7 @@ on:
 jobs:
   build-linux:
     name: linux-x86_64
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, sat-builder]
     container: almalinux:9
     env:
       SDK: /opt/ossia-sdk-x86_64
@@ -37,7 +37,7 @@ jobs:
           yum clean all
 
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Download OSSIA SDK
         shell: bash
@@ -76,7 +76,7 @@ jobs:
         run: packaging/build-appimage.sh
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: speaker-layout-converter-linux-x86_64
           path: packages/
@@ -90,7 +90,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Download OSSIA SDK
         uses: ossia/actions/download-ossia-sdk@master
@@ -166,7 +166,7 @@ jobs:
         run: packaging/build-macos-dmg.sh
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: speaker-layout-converter-macos-arm
           path: packages/
@@ -180,7 +180,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Download OSSIA SDK
         uses: ossia/actions/download-ossia-sdk@master
@@ -218,7 +218,7 @@ jobs:
           packaging/build-windows-zip.sh
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: speaker-layout-converter-windows
           path: packages/
@@ -227,12 +227,13 @@ jobs:
   release:
     name: Create Release
     needs: [build-linux, build-macos, build-windows]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, sat-builder]
+    container: ubuntu:noble
     if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: all-packages
           pattern: speaker-layout-converter-*
