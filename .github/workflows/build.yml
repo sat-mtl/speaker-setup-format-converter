@@ -57,6 +57,7 @@ jobs:
             -DCMAKE_PREFIX_PATH="$SDK/qt6-static;$SDK/openssl;$SDK/sysroot;$SDK/sysroot/lib/cmake/freetype;$SDK/sysroot/lib/cmake/harfbuzz" \
             -DCMAKE_C_COMPILER="$SDK/llvm/bin/clang" \
             -DCMAKE_CXX_COMPILER="$SDK/llvm/bin/clang++" \
+            -DCMAKE_CXX_STANDARD_LIBRARIES="$SDK/sysroot/lib64/libfreetype.a" \
             -GNinja
 
       - name: Build
